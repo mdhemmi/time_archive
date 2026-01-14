@@ -195,11 +195,15 @@ export default {
 
 	async mounted() {
 		try {
+			console.log('[Files Archive] Loading archive rules...')
 			await this.$store.dispatch('loadArchiveRules')
+			console.log('[Files Archive] Archive rules loaded:', this.archiveRules)
 			this.loading = false
 		} catch (e) {
-			showError(t('files_archive', 'An error occurred while loading the existing archive rules'))
-			console.error(e)
+			console.error('[Files Archive] Error loading archive rules:', e)
+			console.error('[Files Archive] Error details:', e.response || e.message)
+			const errorMsg = e.response?.data?.message || e.message || t('files_archive', 'An error occurred while loading the existing archive rules')
+			showError(errorMsg)
 			this.loading = false
 		}
 	},

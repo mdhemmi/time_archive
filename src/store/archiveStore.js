@@ -47,13 +47,25 @@ const actions = {
 	async loadArchiveRules(context) {
 		try {
 			const response = await getArchiveRules()
+			console.log('[Files Archive] API response:', response)
 			// Handle both OCS and direct response formats
-			const rules = response.data?.ocs?.data || response.data || []
+			let rules = []
+			if (response.data) {
+				if (response.data.ocs && response.data.ocs.data) {
+					rules = response.data.ocs.data
+				} else if (Array.isArray(response.data)) {
+					rules = response.data
+				} else if (response.data.data && Array.isArray(response.data.data)) {
+					rules = response.data.data
+				}
+			}
+			console.log('[Files Archive] Parsed rules:', rules)
 			rules.forEach((rule) => {
 				context.commit('addRule', rule)
 			})
 		} catch (error) {
-			console.error('Failed to load archive rules:', error)
+			console.error('[Files Archive] Failed to load archive rules:', error)
+			console.error('[Files Archive] Error response:', error.response)
 			throw error
 		}
 	},
