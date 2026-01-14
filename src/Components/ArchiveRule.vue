@@ -106,8 +106,14 @@ export default {
 				return n('files_archive', '%n week', '%n weeks', this.timeamount)
 			case 2:
 				return n('files_archive', '%n month', '%n months', this.timeamount)
-			default:
+			case 3:
 				return n('files_archive', '%n year', '%n years', this.timeamount)
+			case 4:
+				return n('files_archive', '%n minute', '%n minutes', this.timeamount)
+			case 5:
+				return n('files_archive', '%n hour', '%n hours', this.timeamount)
+			default:
+				return n('files_archive', '%n day', '%n days', this.timeamount)
 			}
 		},
 

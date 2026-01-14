@@ -124,7 +124,7 @@ class APIController extends OCSController {
 	 * Create an archive rule
 	 *
 	 * @param int|null $tagid Tag the archive rule is based on (null for time-based archiving)
-	 * @param 0|1|2|3 $timeunit Time unit (days, weeks, months, years)
+	 * @param 0|1|2|3|4|5 $timeunit Time unit (days=0, weeks=1, months=2, years=3, minutes=4, hours=5)
 	 * @psalm-param Constants::UNIT_* $timeunit
 	 * @param positive-int $timeamount Amount of time units
 	 * @param 0|1 $timeafter Whether archive time is based on creation time (0) or modification time (1)
@@ -144,7 +144,7 @@ class APIController extends OCSController {
 			}
 		}
 
-		if ($timeunit < 0 || $timeunit > 3) {
+		if ($timeunit < 0 || $timeunit > 5) {
 			return new DataResponse(['error' => 'timeunit'], Http::STATUS_BAD_REQUEST);
 		}
 		if ($timeamount < 1) {
@@ -318,21 +318,25 @@ class APIController extends OCSController {
 	 * Calculate archive before date (helper for logging)
 	 */
 	private function calculateArchiveBeforeDate(int $timeUnit, int $timeAmount): \DateTime {
-		$spec = 'P' . $timeAmount;
-
-		if ($timeUnit === Constants::UNIT_DAY) {
-			$spec .= 'D';
-		} elseif ($timeUnit === Constants::UNIT_WEEK) {
-			$spec .= 'W';
-		} elseif ($timeUnit === Constants::UNIT_MONTH) {
-			$spec .= 'M';
-		} elseif ($timeUnit === Constants::UNIT_YEAR) {
-			$spec .= 'Y';
-		}
-
-		$delta = new \DateInterval($spec);
 		$currentDate = new \DateTime();
 		$currentDate->setTimestamp($this->timeFactory->getTime());
+
+		if ($timeUnit === Constants::UNIT_DAY) {
+			$delta = new \DateInterval('P' . $timeAmount . 'D');
+		} elseif ($timeUnit === Constants::UNIT_WEEK) {
+			$delta = new \DateInterval('P' . $timeAmount . 'W');
+		} elseif ($timeUnit === Constants::UNIT_MONTH) {
+			$delta = new \DateInterval('P' . $timeAmount . 'M');
+		} elseif ($timeUnit === Constants::UNIT_YEAR) {
+			$delta = new \DateInterval('P' . $timeAmount . 'Y');
+		} elseif ($timeUnit === Constants::UNIT_MINUTE) {
+			$delta = new \DateInterval('PT' . $timeAmount . 'M');
+		} elseif ($timeUnit === Constants::UNIT_HOUR) {
+			$delta = new \DateInterval('PT' . $timeAmount . 'H');
+		} else {
+			// Default to days if invalid unit
+			$delta = new \DateInterval('P' . $timeAmount . 'D');
+		}
 
 		return $currentDate->sub($delta);
 	}

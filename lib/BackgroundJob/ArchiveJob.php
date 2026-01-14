@@ -378,21 +378,25 @@ class ArchiveJob extends TimedJob {
 	}
 
 	private function getBeforeDate(int $timeunit, int $timeAmount): \DateTime {
-		$spec = 'P' . $timeAmount;
-
-		if ($timeunit === Constants::UNIT_DAY) {
-			$spec .= 'D';
-		} elseif ($timeunit === Constants::UNIT_WEEK) {
-			$spec .= 'W';
-		} elseif ($timeunit === Constants::UNIT_MONTH) {
-			$spec .= 'M';
-		} elseif ($timeunit === Constants::UNIT_YEAR) {
-			$spec .= 'Y';
-		}
-
-		$delta = new \DateInterval($spec);
 		$currentDate = new \DateTime();
 		$currentDate->setTimestamp($this->time->getTime());
+
+		if ($timeunit === Constants::UNIT_DAY) {
+			$delta = new \DateInterval('P' . $timeAmount . 'D');
+		} elseif ($timeunit === Constants::UNIT_WEEK) {
+			$delta = new \DateInterval('P' . $timeAmount . 'W');
+		} elseif ($timeunit === Constants::UNIT_MONTH) {
+			$delta = new \DateInterval('P' . $timeAmount . 'M');
+		} elseif ($timeunit === Constants::UNIT_YEAR) {
+			$delta = new \DateInterval('P' . $timeAmount . 'Y');
+		} elseif ($timeunit === Constants::UNIT_MINUTE) {
+			$delta = new \DateInterval('PT' . $timeAmount . 'M');
+		} elseif ($timeunit === Constants::UNIT_HOUR) {
+			$delta = new \DateInterval('PT' . $timeAmount . 'H');
+		} else {
+			// Default to days if invalid unit
+			$delta = new \DateInterval('P' . $timeAmount . 'D');
+		}
 
 		return $currentDate->sub($delta);
 	}

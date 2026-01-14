@@ -145,12 +145,14 @@ export default {
 		Play,
 	},
 
-	data() {
+		data() {
 		const unitOptions = [
 			{ id: 0, label: t('files_archive', 'Days') },
 			{ id: 1, label: t('files_archive', 'Weeks') },
 			{ id: 2, label: t('files_archive', 'Months') },
 			{ id: 3, label: t('files_archive', 'Years') },
+			{ id: 4, label: t('files_archive', 'Minutes') },
+			{ id: 5, label: t('files_archive', 'Hours') },
 		]
 		
 		const afterOptions = [
@@ -202,7 +204,7 @@ export default {
 			const newAfter = this.newAfter?.id ?? this.newAfter
 			const newAmount = parseInt(this.newAmount, 10)
 
-			if (newUnit < 0 || newUnit > 3) {
+			if (newUnit < 0 || newUnit > 5) {
 				showError(t('files_archive', 'Invalid time unit'))
 				return
 			}
