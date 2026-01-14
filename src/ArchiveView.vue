@@ -71,7 +71,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { showError } from '@nextcloud/dialogs'
-import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import Archive from 'vue-material-design-icons/Archive.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import { getArchivedFiles } from './services/archiveService.js'
