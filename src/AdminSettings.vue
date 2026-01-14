@@ -5,7 +5,7 @@
 <template>
 	<NcSettingsSection :name="t('files_archive', 'File Archive')"
 		:doc-url="docUrl"
-		:description="t('files_archive', 'Automatically archive files based on system tags and file age. Archived files are moved to the .archive folder, which is hidden from mobile apps but accessible via the web interface.')">
+		:description="t('files_archive', 'Automatically archive files based on age. Archived files are moved to the .archive folder, which is hidden from mobile apps but accessible via the web interface.')">
 		
 		<!-- Existing Rules -->
 		<div v-if="archiveRules.length > 0" class="archive-rules-list">
@@ -15,7 +15,6 @@
 			<div class="archive-rules-grid">
 				<ArchiveRule v-for="rule in archiveRules"
 					:key="rule.id"
-					:tags="tags"
 					v-bind="rule" />
 			</div>
 		</div>
@@ -27,22 +26,6 @@
 			</h3>
 			
 			<div class="archive-form">
-				<!-- Tag Selection -->
-				<div class="archive-form__field">
-					<label class="archive-form__label">
-						{{ t('files_archive', 'Files tagged with') }}
-					</label>
-					<NcSelectTags v-model="newTag"
-						:disabled="loading"
-						:multiple="false"
-						:clearable="false"
-						:options-filter="filterAvailableTagList"
-						class="archive-form__input" />
-					<p class="archive-form__hint">
-						{{ t('files_archive', 'Select a system tag. Files with this tag will be archived according to the rule.') }}
-					</p>
-				</div>
-
 				<!-- Archive Time -->
 				<div class="archive-form__field-group">
 					<div class="archive-form__field archive-form__field--time">
@@ -93,7 +76,7 @@
 				<div class="archive-form__info-box">
 					<Archive :size="20" class="archive-form__info-icon" />
 					<p class="archive-form__info-text">
-						{{ t('files_archive', 'Files will be moved to the .archive folder, which is automatically hidden from mobile apps. You can access archived files through the web interface at any time.') }}
+						{{ t('files_archive', 'All files matching the age criteria will be moved to the .archive folder for each user. This folder is automatically hidden from mobile apps to prevent re-uploading. You can access archived files through the web interface at any time.') }}
 					</p>
 				</div>
 
@@ -101,7 +84,7 @@
 				<div class="archive-form__actions">
 					<NcButton variant="primary"
 						type="button"
-						:disabled="loading || newTag === null || newTag < 0"
+						:disabled="loading"
 						:aria-label="createLabel"
 						@click="onClickCreate">
 						<template #icon>
@@ -118,14 +101,12 @@
 <script>
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
-import NcSelectTags from '@nextcloud/vue/components/NcSelectTags'
 import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Archive from 'vue-material-design-icons/Archive.vue'
 
 import ArchiveRule from './Components/ArchiveRule.vue'
-import { fetchTags } from './services/api.ts'
 
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { loadState } from '@nextcloud/initial-state'
@@ -137,7 +118,6 @@ export default {
 	components: {
 		NcButton,
 		NcSelect,
-		NcSelectTags,
 		ArchiveRule,
 		NcSettingsSection,
 		NcTextField,
@@ -164,23 +144,13 @@ export default {
 			],
 			newAfter: {},
 
-			newAmount: '90',
-
-			newTag: null,
-			filterAvailableTagList: (tag) => {
-				return !this.tagIdsWithRule.includes(tag.id)
-			},
-			tags: [],
+			newAmount: '365',
 		}
 	},
 
 	computed: {
 		archiveRules() {
 			return this.$store.getters.getArchiveRules()
-		},
-
-		tagIdsWithRule() {
-			return this.$store.getters.getTagIdsWithRule()
 		},
 
 		createLabel() {
@@ -190,7 +160,6 @@ export default {
 
 	async mounted() {
 		try {
-			this.tags = await fetchTags()
 			await this.$store.dispatch('loadArchiveRules')
 
 			this.resetForm()
@@ -206,22 +175,9 @@ export default {
 		t,
 
 		async onClickCreate() {
-			const newTag = this.newTag?.id ?? this.newTag
 			const newUnit = this.newUnit?.id ?? this.newUnit
 			const newAfter = this.newAfter?.id ?? this.newAfter
 			const newAmount = parseInt(this.newAmount, 10)
-
-			if (newTag === null || newTag < 0) {
-				showError(t('files_archive', 'Please select a tag'))
-				return
-			}
-
-			const tagName = this.tags.find((tag) => tag.id === newTag)?.displayName
-
-			if (this.tagIdsWithRule.includes(newTag)) {
-				showError(t('files_archive', 'Tag {tagName} already has an archive rule', { tagName }))
-				return
-			}
 
 			if (newUnit < 0 || newUnit > 3) {
 				showError(t('files_archive', 'Invalid time unit'))
@@ -240,7 +196,7 @@ export default {
 
 			try {
 				const ruleData = {
-					tagid: newTag,
+					tagid: null,
 					timeamount: newAmount,
 					timeunit: newUnit,
 					timeafter: newAfter,
@@ -248,19 +204,18 @@ export default {
 
 				await this.$store.dispatch('createNewRule', ruleData)
 
-				showSuccess(t('files_archive', 'Archive rule for tag {tagName} has been created', { tagName }))
+				showSuccess(t('files_archive', 'Archive rule has been created'))
 				this.resetForm()
 			} catch (e) {
-				showError(t('files_archive', 'Failed to create archive rule for tag {tagName}', { tagName }))
+				showError(t('files_archive', 'Failed to create archive rule'))
 				console.error(e)
 			}
 		},
 
 		resetForm() {
-			this.newTag = null
-			this.newAmount = '90'
-			this.newUnit = this.unitOptions[0]
-			this.newAfter = this.afterOptions[0]
+			this.newAmount = '365'
+			this.newUnit = this.unitOptions[3] // Default to years
+			this.newAfter = this.afterOptions[1] // Default to modification date
 		},
 	},
 }

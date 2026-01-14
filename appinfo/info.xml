@@ -7,8 +7,8 @@
 	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>files_archive</id>
 	<name>File Archive</name>
-	<summary>Automatically archive files based on tags and age. Archived files are moved to .archive folder (hidden from mobile apps).</summary>
-	<description>An app for Nextcloud to automatically archive files based on system tags and file age. Archived files are moved to the .archive folder which is hidden from mobile apps but accessible via the web interface. Perfect for organizing old files while keeping them accessible.</description>
+	<summary>Automatically archive files based on age. Archived files are moved to .archive folder (hidden from mobile apps).</summary>
+	<description>An app for Nextcloud to automatically archive files based on file age. Configure rules to archive files older than a specified time period (e.g., 1 year). Archived files are moved to the .archive folder for each user, which is hidden from mobile apps to prevent re-uploading but remains accessible via the web interface. Perfect for organizing old files while keeping them accessible.</description>
 	<version>1.0.0</version>
 	<licence>agpl</licence>
 	<author>Nextcloud Contributors</author>
@@ -19,6 +19,8 @@
 	</documentation>
 
 	<category>tools</category>
+
+	<screenshot>https://raw.githubusercontent.com/nextcloud/files_archive/main/img/app.svg</screenshot>
 
 	<website>https://github.com/nextcloud/files_archive</website>
 	<bugs>https://github.com/nextcloud/files_archive/issues</bugs>

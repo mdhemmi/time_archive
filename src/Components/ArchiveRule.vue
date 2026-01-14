@@ -5,9 +5,9 @@
 <template>
 	<div class="archive-rule-card">
 		<div class="archive-rule-card__header">
-			<div class="archive-rule-card__tag">
-				<Tag :size="20" class="archive-rule-card__tag-icon" />
-				<span class="archive-rule-card__tag-name">{{ tagName }}</span>
+			<div class="archive-rule-card__title">
+				<ClockOutline :size="20" class="archive-rule-card__title-icon" />
+				<span class="archive-rule-card__title-name">{{ t('files_archive', 'Time-based archive rule') }}</span>
 			</div>
 			<NcButton variant="tertiary"
 				:aria-label="deleteLabel"
@@ -51,7 +51,6 @@
 <script>
 import NcButton from '@nextcloud/vue/components/NcButton'
 import Delete from 'vue-material-design-icons/TrashCanOutline.vue'
-import Tag from 'vue-material-design-icons/Tag.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import Calendar from 'vue-material-design-icons/Calendar.vue'
 import Archive from 'vue-material-design-icons/Archive.vue'
@@ -65,7 +64,6 @@ export default {
 	components: {
 		NcButton,
 		Delete,
-		Tag,
 		ClockOutline,
 		Calendar,
 		Archive,
@@ -78,7 +76,8 @@ export default {
 		},
 		tagid: {
 			type: Number,
-			required: true,
+			required: false,
+			default: null,
 		},
 		timeunit: {
 			type: Number,
@@ -96,17 +95,9 @@ export default {
 			type: Boolean,
 			required: true,
 		},
-		tags: {
-			type: Array,
-			required: true,
-		},
 	},
 
 	computed: {
-		tagName() {
-			return this.tags.find((tag) => tag.id === this.tagid)?.displayName
-		},
-
 		getAmountAndUnit() {
 			switch (this.timeunit) {
 			case 0:
@@ -130,14 +121,15 @@ export default {
 		},
 
 		deleteLabel() {
-			return t('files_archive', 'Delete archive rule for tag {tagName}', { tagName: this.tagName })
+			return t('files_archive', 'Delete archive rule')
 		},
 	},
 
 	methods: {
+		t,
 		async onClickDelete() {
 			await this.$store.dispatch('deleteArchiveRule', this.id)
-			showSuccess(t('files_archive', 'Archive rule for tag {tagName} has been deleted', { tagName: this.tagName }))
+			showSuccess(t('files_archive', 'Archive rule has been deleted'))
 		},
 	},
 }
@@ -165,17 +157,17 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 }
 
-.archive-rule-card__tag {
+.archive-rule-card__title {
 	display: flex;
 	align-items: center;
 	gap: 8px;
 }
 
-.archive-rule-card__tag-icon {
+.archive-rule-card__title-icon {
 	color: var(--color-primary-element);
 }
 
-.archive-rule-card__tag-name {
+.archive-rule-card__title-name {
 	font-weight: 600;
 	font-size: 1.05em;
 	color: var(--color-main-text);

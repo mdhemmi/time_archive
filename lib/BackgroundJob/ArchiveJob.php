@@ -21,6 +21,7 @@ use OCP\Files\Node;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
 use OCP\IDBConnection;
+use OCP\IUserManager;
 use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\ISystemTagObjectMapper;
 use OCP\SystemTag\TagNotFoundException;
@@ -35,6 +36,7 @@ class ArchiveJob extends TimedJob {
 		private readonly IDBConnection $db,
 		private readonly IRootFolder $rootFolder,
 		private readonly IJobList $jobList,
+		private readonly IUserManager $userManager,
 		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($timeFactory);
@@ -45,29 +47,40 @@ class ArchiveJob extends TimedJob {
 
 	#[\Override]
 	public function run($argument): void {
-		// Validate if tag still exists
-		$tag = $argument['tag'];
-		try {
-			$this->tagManager->getTagsByIds((string)$tag);
-		} catch (\InvalidArgumentException $e) {
-			$this->jobList->remove($this, $argument);
-			$this->logger->debug("Background job was removed, because tag $tag is invalid", [
-				'exception' => $e,
-			]);
-			return;
-		} catch (TagNotFoundException $e) {
-			$this->jobList->remove($this, $argument);
-			$this->logger->debug("Background job was removed, because tag $tag no longer exists", [
-				'exception' => $e,
-			]);
-			return;
-		}
+		// Determine if this is a tag-based or time-based rule
+		$tagId = $argument['tag'] ?? null;
+		$ruleId = $argument['rule'] ?? null;
 
 		// Validate if there is an entry in the DB
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
-			->from('archive_rules')
-			->where($qb->expr()->eq('tag_id', $qb->createNamedParameter($tag)));
+			->from('archive_rules');
+		
+		if ($tagId !== null) {
+			// Tag-based rule
+			$qb->where($qb->expr()->eq('tag_id', $qb->createNamedParameter($tagId)));
+			
+			// Validate if tag still exists
+			try {
+				$this->tagManager->getTagsByIds((string)$tagId);
+			} catch (\InvalidArgumentException $e) {
+				$this->jobList->remove($this, $argument);
+				$this->logger->debug("Background job was removed, because tag $tagId is invalid", [
+					'exception' => $e,
+				]);
+				return;
+			} catch (TagNotFoundException $e) {
+				$this->jobList->remove($this, $argument);
+				$this->logger->debug("Background job was removed, because tag $tagId no longer exists", [
+					'exception' => $e,
+				]);
+				return;
+			}
+		} else {
+			// Time-based rule
+			$qb->where($qb->expr()->eq('id', $qb->createNamedParameter($ruleId)))
+				->andWhere($qb->expr()->isNull('tag_id'));
+		}
 
 		$cursor = $qb->executeQuery();
 		$data = $cursor->fetch();
@@ -75,7 +88,8 @@ class ArchiveJob extends TimedJob {
 
 		if ($data === false) {
 			$this->jobList->remove($this, $argument);
-			$this->logger->debug("Background job was removed, because tag $tag has no archive rule configured");
+			$identifier = $tagId ?? $ruleId;
+			$this->logger->debug("Background job was removed, because rule $identifier has no archive rule configured");
 			return;
 		}
 
@@ -83,12 +97,25 @@ class ArchiveJob extends TimedJob {
 		$archiveBefore = $this->getBeforeDate((int)$data['time_unit'], (int)$data['time_amount']);
 		$timeAfter = (int)$data['time_after'];
 
-		$this->logger->debug("Running archive for Tag $tag with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
+		if ($tagId !== null) {
+			// Tag-based archiving
+			$this->logger->debug("Running archive for Tag $tagId with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
+			$this->archiveByTag($tagId, $archiveBefore, $timeAfter);
+		} else {
+			// Time-based archiving - archive all files for all users
+			$this->logger->debug("Running time-based archive (Rule $ruleId) with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
+			$this->archiveByTime($archiveBefore, $timeAfter);
+		}
+	}
 
+	/**
+	 * Archive files based on tag
+	 */
+	private function archiveByTag(int $tagId, \DateTime $archiveBefore, int $timeAfter): void {
 		$offset = '';
 		$limit = 1000;
 		while ($offset !== null) {
-			$fileIds = $this->tagMapper->getObjectIdsForTags((string)$tag, 'files', $limit, $offset);
+			$fileIds = $this->tagMapper->getObjectIdsForTags((string)$tagId, 'files', $limit, $offset);
 			$this->logger->debug('Checking archive for ' . count($fileIds) . ' files in this chunk');
 
 			foreach ($fileIds as $fileId) {
@@ -102,7 +129,7 @@ class ArchiveJob extends TimedJob {
 					continue;
 				}
 
-				$this->archiveNode($node, $archiveBefore, $timeAfter, (string)$tag);
+				$this->archiveNode($node, $archiveBefore, $timeAfter, (string)$tagId);
 			}
 
 			if (empty($fileIds) || count($fileIds) < $limit) {
@@ -110,6 +137,53 @@ class ArchiveJob extends TimedJob {
 			}
 
 			$offset = (string)array_pop($fileIds);
+		}
+	}
+
+	/**
+	 * Archive files based on time for all users
+	 */
+	private function archiveByTime(\DateTime $archiveBefore, int $timeAfter): void {
+		$this->userManager->callForAllUsers(function ($user) use ($archiveBefore, $timeAfter) {
+			$userId = $user->getUID();
+			try {
+				$userFolder = $this->rootFolder->getUserFolder($userId);
+				if (!Filesystem::$loaded) {
+					Filesystem::init($userId, '/' . $userId . '/files');
+				}
+				
+				$this->archiveUserFolder($userFolder, $archiveBefore, $timeAfter, $userId);
+			} catch (Exception $e) {
+				$this->logger->warning("Failed to archive files for user $userId: " . $e->getMessage(), [
+					'exception' => $e,
+				]);
+			}
+		});
+	}
+
+	/**
+	 * Recursively archive files in a folder
+	 */
+	private function archiveUserFolder(Folder $folder, \DateTime $archiveBefore, int $timeAfter, string $userId): void {
+		// Skip the archive folder itself
+		if ($folder->getName() === Constants::ARCHIVE_FOLDER) {
+			return;
+		}
+
+		$nodes = $folder->getDirectoryListing();
+		foreach ($nodes as $node) {
+			// Skip if already in archive folder
+			if (strpos($node->getPath(), '/' . Constants::ARCHIVE_FOLDER . '/') !== false) {
+				continue;
+			}
+
+			if ($node instanceof Folder) {
+				// Recursively process subfolders
+				$this->archiveUserFolder($node, $archiveBefore, $timeAfter, $userId);
+			} else {
+				// Check and archive file
+				$this->archiveNode($node, $archiveBefore, $timeAfter, null);
+			}
 		}
 	}
 
@@ -180,15 +254,17 @@ class ArchiveJob extends TimedJob {
 		return $time;
 	}
 
-	private function archiveNode(Node $node, \DateTime $archiveBefore, int $timeAfter, string $tagId): void {
+	private function archiveNode(Node $node, \DateTime $archiveBefore, int $timeAfter, ?string $tagId): void {
 		$time = $this->getDateFromNode($node, $timeAfter);
 
 		if ($time < $archiveBefore) {
 			$this->logger->debug('Archiving file ' . $node->getId());
 			try {
 				$this->moveToArchive($node);
-				// Remove tag after archiving to prevent re-archiving
-				$this->removeTagFromFile($node->getId(), $tagId);
+				// Remove tag after archiving to prevent re-archiving (only for tag-based rules)
+				if ($tagId !== null) {
+					$this->removeTagFromFile($node->getId(), $tagId);
+				}
 			} catch (Exception $e) {
 				$this->logger->error('Failed to archive file ' . $node->getId() . ': ' . $e->getMessage(), [
 					'exception' => $e,

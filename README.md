@@ -4,16 +4,17 @@
 -->
 # Nextcloud File Archive App
 
-An app for Nextcloud to automatically archive files based on system tags and file age. Archived files are moved to the `.archive` folder, which is hidden from mobile apps but accessible via the web interface.
+An app for Nextcloud to automatically archive files based on file age. Archived files are moved to the `.archive` folder for each user, which is hidden from mobile apps to prevent re-uploading but remains accessible via the web interface.
 
 ## Features
 
-- **Automatic Archiving**: Archive files based on system tags and age
-- **Mobile App Hidden**: Archive folder is prefixed with a dot (`.archive`), making it invisible to mobile apps
+- **Automatic Archiving**: Archive files based on age (no tags required)
+- **Mobile App Hidden**: Archive folder is prefixed with a dot (`.archive`), making it invisible to mobile apps and preventing re-upload
 - **Web Accessible**: Archived files remain accessible through the web interface
-- **Tag-Based Rules**: Create archive rules based on system tags
+- **Time-Based Rules**: Create archive rules based on file age
 - **Flexible Time Periods**: Configure archive periods in days, weeks, months, or years
 - **Date Calculation**: Choose to calculate from creation date or last modification date
+- **Per-User Archives**: Each user gets their own `.archive` folder
 
 ## Installation
 
@@ -57,20 +58,18 @@ php occ upgrade
 
 1. Go to **Settings → Administration → Workflow → File Archive**
 2. Create an archive rule:
-   - Select a system tag
-   - Set the archive period (e.g., 90 days)
+   - Set the archive period (e.g., 1 year)
    - Choose time unit (Days/Weeks/Months/Years)
    - Select date calculation method (Creation date or Last modification date)
-3. Tag your files with the selected system tag
-4. Files matching the criteria will be automatically archived to `.archive` folder
+3. Files matching the age criteria will be automatically archived to `.archive` folder for each user
 
 ## How It Works
 
-- Files are moved (not deleted) to the `.archive` folder
-- The archive folder is hidden from mobile apps (dot-prefixed)
-- The system tag is removed after archiving to prevent re-archiving
-- Background jobs run daily to check and archive files
+- Files are moved (not deleted) to the `.archive` folder in each user's home directory
+- The archive folder is hidden from mobile apps (dot-prefixed) to prevent re-uploading
+- Background jobs run daily to check and archive files for all users
 - Archived files remain accessible via the web interface
+- Each user has their own `.archive` folder, ensuring files are organized per user
 
 ## Development
 

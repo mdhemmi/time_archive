@@ -52,15 +52,23 @@ class APIController extends OCSController {
 
 		$result = $tagIds = [];
 		while ($data = $cursor->fetch()) {
-			$tagIds[] = (string)$data['tag_id'];
-			$hasJob = $this->jobList->has(ArchiveJob::class, ['tag' => (int)$data['tag_id']]);
+			$tagId = $data['tag_id'] !== null ? (int)$data['tag_id'] : null;
+			$ruleId = (int)$data['id'];
+			
+			// For time-based rules (no tag), use rule ID as job identifier
+			$jobKey = $tagId !== null ? ['tag' => $tagId] : ['rule' => $ruleId];
+			$hasJob = $this->jobList->has(ArchiveJob::class, $jobKey);
 			if (!$hasJob) {
-				$this->jobList->add(ArchiveJob::class, ['tag' => (int)$data['tag_id']]);
+				$this->jobList->add(ArchiveJob::class, $jobKey);
+			}
+
+			if ($tagId !== null) {
+				$tagIds[] = (string)$tagId;
 			}
 
 			$result[] = [
-				'id' => (int)$data['id'],
-				'tagid' => (int)$data['tag_id'],
+				'id' => $ruleId,
+				'tagid' => $tagId,
 				'timeunit' => (int)$data['time_unit'],
 				'timeamount' => (int)$data['time_amount'],
 				'timeafter' => (int)$data['time_after'],
@@ -69,14 +77,17 @@ class APIController extends OCSController {
 		}
 		$cursor->closeCursor();
 
-		try {
-			$this->tagManager->getTagsByIds($tagIds);
-		} catch (TagNotFoundException $e) {
-			$missingTags = array_map('intval', $e->getMissingTags());
+		// Only validate tags if there are any
+		if (!empty($tagIds)) {
+			try {
+				$this->tagManager->getTagsByIds($tagIds);
+			} catch (TagNotFoundException $e) {
+				$missingTags = array_map('intval', $e->getMissingTags());
 
-			$result = array_values(array_filter($result, static function (array $rule) use ($missingTags): bool {
-				return !in_array($rule['tagid'], $missingTags, true);
-			}));
+				$result = array_values(array_filter($result, static function (array $rule) use ($missingTags): bool {
+					return $rule['tagid'] === null || !in_array($rule['tagid'], $missingTags, true);
+				}));
+			}
 		}
 
 		return new DataResponse($result);
@@ -85,7 +96,7 @@ class APIController extends OCSController {
 	/**
 	 * Create an archive rule
 	 *
-	 * @param int $tagid Tag the archive rule is based on
+	 * @param int|null $tagid Tag the archive rule is based on (null for time-based archiving)
 	 * @param 0|1|2|3 $timeunit Time unit (days, weeks, months, years)
 	 * @psalm-param Constants::UNIT_* $timeunit
 	 * @param positive-int $timeamount Amount of time units
@@ -96,11 +107,14 @@ class APIController extends OCSController {
 	 * 201: Archive rule created
 	 * 400: At least one of the parameters was invalid
 	 */
-	public function createArchiveRule(int $tagid, int $timeunit, int $timeamount, int $timeafter = Constants::MODE_CTIME): DataResponse {
-		try {
-			$this->tagManager->getTagsByIds((string)$tagid);
-		} catch (\InvalidArgumentException) {
-			return new DataResponse(['error' => 'tagid'], Http::STATUS_BAD_REQUEST);
+	public function createArchiveRule(?int $tagid, int $timeunit, int $timeamount, int $timeafter = Constants::MODE_CTIME): DataResponse {
+		// Validate tag if provided
+		if ($tagid !== null) {
+			try {
+				$this->tagManager->getTagsByIds((string)$tagid);
+			} catch (\InvalidArgumentException) {
+				return new DataResponse(['error' => 'tagid'], Http::STATUS_BAD_REQUEST);
+			}
 		}
 
 		if ($timeunit < 0 || $timeunit > 3) {
@@ -123,8 +137,9 @@ class APIController extends OCSController {
 		$qb->executeStatement();
 		$id = $qb->getLastInsertId();
 
-		// Insert background job
-		$this->jobList->add(ArchiveJob::class, ['tag' => $tagid]);
+		// Insert background job - use rule ID for time-based, tag ID for tag-based
+		$jobKey = $tagid !== null ? ['tag' => $tagid] : ['rule' => $id];
+		$this->jobList->add(ArchiveJob::class, $jobKey);
 
 		return new DataResponse([
 			'id' => $id,
@@ -148,7 +163,7 @@ class APIController extends OCSController {
 	public function deleteArchiveRule(int $id): DataResponse {
 		$qb = $this->db->getQueryBuilder();
 
-		// Fetch tag_id
+		// Fetch tag_id and rule info
 		$qb->select('tag_id')
 			->from('archive_rules')
 			->where($qb->expr()->eq('id', $qb->createNamedParameter($id)))
@@ -167,8 +182,10 @@ class APIController extends OCSController {
 			->where($qb->expr()->eq('id', $qb->createNamedParameter($id)));
 		$qb->executeStatement();
 
-		// Remove background job
-		$this->jobList->remove(ArchiveJob::class, ['tag' => (int)$data['tag_id']]);
+		// Remove background job - use appropriate key
+		$tagId = $data['tag_id'];
+		$jobKey = $tagId !== null ? ['tag' => (int)$tagId] : ['rule' => $id];
+		$this->jobList->remove(ArchiveJob::class, $jobKey);
 
 		return new DataResponse([], Http::STATUS_NO_CONTENT);
 	}

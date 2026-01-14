@@ -14,7 +14,6 @@ const state = () => ({
 
 const getters = {
 	getArchiveRules: state => () => Object.values(state.archiveRules),
-	getTagIdsWithRule: state => () => Object.values(state.archiveRules).map((rule) => rule.tagid),
 }
 
 const mutations = {
