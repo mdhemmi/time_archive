@@ -336,5 +336,4 @@ class APIController extends OCSController {
 
 		return $currentDate->sub($delta);
 	}
-	}
 }
