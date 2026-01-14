@@ -45,10 +45,17 @@ const actions = {
 	 * @param {object} context default store context
 	 */
 	async loadArchiveRules(context) {
-		const response = await getArchiveRules()
-		response.data.ocs.data.forEach((rule) => {
-			context.commit('addRule', rule)
-		})
+		try {
+			const response = await getArchiveRules()
+			// Handle both OCS and direct response formats
+			const rules = response.data?.ocs?.data || response.data || []
+			rules.forEach((rule) => {
+				context.commit('addRule', rule)
+			})
+		} catch (error) {
+			console.error('Failed to load archive rules:', error)
+			throw error
+		}
 	},
 
 	async deleteArchiveRule(context, ruleId) {

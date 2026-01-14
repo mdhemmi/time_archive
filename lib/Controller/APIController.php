@@ -19,6 +19,7 @@ use OCP\IDBConnection;
 use OCP\IRequest;
 use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\TagNotFoundException;
+use Psr\Log\LoggerInterface;
 
 /**
  * @psalm-import-type Files_ArchiveRule from ResponseDefinitions
@@ -30,6 +31,7 @@ class APIController extends OCSController {
 		private readonly IDBConnection $db,
 		private readonly ISystemTagManager $tagManager,
 		private readonly IJobList $jobList,
+		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -51,31 +53,40 @@ class APIController extends OCSController {
 		$cursor = $qb->executeQuery();
 
 		$result = $tagIds = [];
-		while ($data = $cursor->fetch()) {
-			$tagId = $data['tag_id'] !== null ? (int)$data['tag_id'] : null;
-			$ruleId = (int)$data['id'];
-			
-			// For time-based rules (no tag), use rule ID as job identifier
-			$jobKey = $tagId !== null ? ['tag' => $tagId] : ['rule' => $ruleId];
-			$hasJob = $this->jobList->has(ArchiveJob::class, $jobKey);
-			if (!$hasJob) {
-				$this->jobList->add(ArchiveJob::class, $jobKey);
-			}
+		try {
+			while ($data = $cursor->fetch()) {
+				// Handle tag_id - it might be null, empty string, or an integer
+				$tagIdValue = $data['tag_id'];
+				$tagId = ($tagIdValue !== null && $tagIdValue !== '' && $tagIdValue !== '0') ? (int)$tagIdValue : null;
+				$ruleId = (int)$data['id'];
+				
+				// For time-based rules (no tag), use rule ID as job identifier
+				$jobKey = $tagId !== null ? ['tag' => $tagId] : ['rule' => $ruleId];
+				try {
+					$hasJob = $this->jobList->has(ArchiveJob::class, $jobKey);
+					if (!$hasJob) {
+						$this->jobList->add(ArchiveJob::class, $jobKey);
+					}
+				} catch (\Exception $e) {
+					$this->logger->warning('Failed to check/add job for rule ' . $ruleId . ': ' . $e->getMessage());
+				}
 
-			if ($tagId !== null) {
-				$tagIds[] = (string)$tagId;
-			}
+				if ($tagId !== null) {
+					$tagIds[] = (string)$tagId;
+				}
 
-			$result[] = [
-				'id' => $ruleId,
-				'tagid' => $tagId,
-				'timeunit' => (int)$data['time_unit'],
-				'timeamount' => (int)$data['time_amount'],
-				'timeafter' => (int)$data['time_after'],
-				'hasJob' => true,
-			];
+				$result[] = [
+					'id' => $ruleId,
+					'tagid' => $tagId,
+					'timeunit' => (int)$data['time_unit'],
+					'timeamount' => (int)$data['time_amount'],
+					'timeafter' => (int)$data['time_after'],
+					'hasJob' => true,
+				];
+			}
+		} finally {
+			$cursor->closeCursor();
 		}
-		$cursor->closeCursor();
 
 		// Only validate tags if there are any
 		if (!empty($tagIds)) {
@@ -86,6 +97,12 @@ class APIController extends OCSController {
 
 				$result = array_values(array_filter($result, static function (array $rule) use ($missingTags): bool {
 					return $rule['tagid'] === null || !in_array($rule['tagid'], $missingTags, true);
+				}));
+			} catch (\InvalidArgumentException $e) {
+				// If tag IDs are invalid, filter out rules with those tags
+				$this->logger->warning('Invalid tag IDs found in archive rules: ' . $e->getMessage());
+				$result = array_values(array_filter($result, static function (array $rule): bool {
+					return $rule['tagid'] === null;
 				}));
 			}
 		}
