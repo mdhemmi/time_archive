@@ -37,17 +37,15 @@ ls -lah js/
 ## Step 3: Clear Nextcloud Cache Completely
 
 ```bash
-cd /opt/stacks/nextcloud
-
 # Enter maintenance mode
-sudo -u www-data php occ maintenance:mode --on
+docker exec -u www-data nextcloud_nextcloud_app php /var/www/html/occ maintenance:mode --on
 
 # Clear all caches
-sudo -u www-data php occ files:scan --all
-sudo -u www-data php occ maintenance:repair
+docker exec -u www-data nextcloud_nextcloud_app php /var/www/html/occ files:scan --all
+docker exec -u www-data nextcloud_nextcloud_app php /var/www/html/occ maintenance:repair
 
 # Exit maintenance mode
-sudo -u www-data php occ maintenance:mode --off
+docker exec -u www-data nextcloud_nextcloud_app php /var/www/html/occ maintenance:mode --off
 ```
 
 ## Step 4: Clear Browser Cache Completely
