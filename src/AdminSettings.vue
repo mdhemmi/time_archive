@@ -126,23 +126,27 @@ export default {
 	},
 
 	data() {
+		const unitOptions = [
+			{ id: 0, label: t('files_archive', 'Days') },
+			{ id: 1, label: t('files_archive', 'Weeks') },
+			{ id: 2, label: t('files_archive', 'Months') },
+			{ id: 3, label: t('files_archive', 'Years') },
+		]
+		
+		const afterOptions = [
+			{ id: 0, label: t('files_archive', 'Creation date') },
+			{ id: 1, label: t('files_archive', 'Last modification date') },
+		]
+
 		return {
 			loading: true,
 			docUrl: loadState('files_archive', 'doc-url'),
 
-			unitOptions: [
-				{ id: 0, label: t('files_archive', 'Days') },
-				{ id: 1, label: t('files_archive', 'Weeks') },
-				{ id: 2, label: t('files_archive', 'Months') },
-				{ id: 3, label: t('files_archive', 'Years') },
-			],
-			newUnit: {},
+			unitOptions,
+			newUnit: unitOptions[3], // Default to years
 
-			afterOptions: [
-				{ id: 0, label: t('files_archive', 'Creation date') },
-				{ id: 1, label: t('files_archive', 'Last modification date') },
-			],
-			newAfter: {},
+			afterOptions,
+			newAfter: afterOptions[1], // Default to modification date
 
 			newAmount: '365',
 		}
@@ -161,13 +165,11 @@ export default {
 	async mounted() {
 		try {
 			await this.$store.dispatch('loadArchiveRules')
-
-			this.resetForm()
-
 			this.loading = false
 		} catch (e) {
 			showError(t('files_archive', 'An error occurred while loading the existing archive rules'))
 			console.error(e)
+			this.loading = false
 		}
 	},
 
