@@ -94,7 +94,19 @@ chmod -R 755 js/ 2>/dev/null || echo "   (Skipping chmod - run as root if needed
 echo "   ✓ Permissions set"
 
 echo ""
-echo "7. Clearing Nextcloud cache..."
+echo "7. Copying files to Docker container (if using Docker)..."
+if docker ps | grep -q nextcloud_nextcloud_app; then
+    echo "   Copying js/ directory to Docker container..."
+    docker cp js/ nextcloud_nextcloud_app:/var/www/html/apps/time_archive/ 2>/dev/null && echo "   ✓ Files copied to Docker container" || echo "   (Warning: Could not copy to Docker - files may need manual copy)"
+    
+    echo "   Setting permissions in Docker container..."
+    docker exec -u root nextcloud_nextcloud_app chown -R www-data:www-data /var/www/html/apps/time_archive/js/ 2>/dev/null || echo "   (Warning: Could not set permissions in Docker)"
+else
+    echo "   (Docker container not found - skipping Docker copy)"
+fi
+
+echo ""
+echo "8. Clearing Nextcloud cache..."
 echo "   Entering maintenance mode..."
 docker exec -u www-data nextcloud_nextcloud_app php /var/www/html/occ maintenance:mode --on 2>/dev/null || echo "   (Warning: Could not enter maintenance mode)"
 echo "   Exiting maintenance mode..."
