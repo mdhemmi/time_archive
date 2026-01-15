@@ -10,7 +10,6 @@ namespace OCA\Time_Archive\AppInfo;
 use OCA\Time_Archive\EventListener;
 use OCA\Time_Archive\Navigation\NavigationManager;
 use OCA\Time_Archive\Notification\Notifier;
-use OCA\Time_Archive\Repair\FavoriteArchiveFolders;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -29,7 +28,7 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		$context->registerEventListener(ManagerEvent::EVENT_DELETE, EventListener::class);
 		$context->registerNotifierService(Notifier::class);
-		$context->registerRepairStep(FavoriteArchiveFolders::class);
+		// Note: Repair steps are registered in appinfo/info.xml, not here
 	}
 
 	#[\Override]
@@ -48,11 +47,10 @@ class Application extends App implements IBootstrap {
 		// Load Files app sidebar navigation script
 		// This script will register the Archive entry in the Files app sidebar
 		// Note: Util::addScript automatically prefixes with app ID, so we just pass the base name
+		// The scripts themselves check if they're on the Files app page before running
 		Util::addScript(self::APP_ID, 'navigation');
-		
-		// Load script to add visible Archive link in Files app
-		// This creates a prominent button/link that users can easily find
-		Util::addScript(self::APP_ID, 'archiveLink');
+		// Note: archiveLink is optional - uncomment if needed after verifying file exists
+		// Util::addScript(self::APP_ID, 'archiveLink');
 	}
 }
 

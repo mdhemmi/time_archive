@@ -35,4 +35,10 @@
 	<settings>
 		<admin>OCA\Time_Archive\Settings\Admin</admin>
 	</settings>
+
+	<repair-steps>
+		<install>
+			<step>OCA\Time_Archive\Repair\FavoriteArchiveFolders</step>
+		</install>
+	</repair-steps>
 </info>
