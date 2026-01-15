@@ -175,6 +175,35 @@ See the [Automated Release](#automated-release) section below for more details.
 
 ### Step 5: Sign the App
 
+You can sign the app either manually or using the provided script:
+
+#### Option A: Using the Signing Script (Recommended)
+
+1. **Download the archive** from GitHub Actions artifacts or use a local file
+
+2. **Run the signing script**:
+   ```bash
+   # If archive is in current directory
+   ./sign-release.sh 1.0.0
+   
+   # Or specify the archive file
+   ./sign-release.sh 1.0.0 files_archive-1.0.0.tar.gz
+   ```
+
+   The script will:
+   - Copy the archive to your Docker container
+   - Sign it using your certificates
+   - Copy the signed archive back as `files_archive-1.0.0-signed.tar.gz`
+   - Clean up temporary files
+
+3. **Prerequisites for the script**:
+   - Docker container named `nextcloud_nextcloud_app` must be running
+   - Certificates must be in `~/.nextcloud/certificates/`:
+     - `files_archive.key`
+     - `files_archive.crt`
+
+#### Option B: Manual Signing
+
 1. **Sign the app using Nextcloud's `occ` command**:
    ```bash
    # On your Nextcloud server

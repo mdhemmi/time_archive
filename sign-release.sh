@@ -43,27 +43,61 @@ print_info() {
 if [ $# -lt 1 ]; then
     print_error "Usage: $0 <version> [archive-file]"
     echo ""
+    echo "Or: $0 <archive-file>  (version will be extracted from filename)"
+    echo ""
     echo "Examples:"
     echo "  $0 1.0.0                                    # Sign from GitHub release"
     echo "  $0 1.0.0 files_archive-1.0.0.tar.gz        # Sign local file"
+    echo "  $0 files_archive-1.0.0.tar.gz              # Auto-detect version from filename"
+    echo "  $0 files_archive-1.0.0.zip                 # Works with .zip files too"
     exit 1
 fi
 
-VERSION="$1"
-ARCHIVE_FILE="${2:-}"
-
-# Determine archive file
-if [ -z "$ARCHIVE_FILE" ]; then
-    # Try to find archive in current directory
-    ARCHIVE_FILE="${APP_NAME}-${VERSION}.tar.gz"
-    if [ ! -f "$ARCHIVE_FILE" ]; then
-        print_error "Archive file not found: $ARCHIVE_FILE"
+# Smart argument detection
+if [ -f "$1" ]; then
+    # First argument is a file - extract version from filename
+    ARCHIVE_FILE="$1"
+    FILENAME=$(basename "$ARCHIVE_FILE")
+    
+    # Try to extract version from filename (e.g., files_archive-1.0.0.tar.gz -> 1.0.0)
+    if [[ "$FILENAME" =~ ${APP_NAME}-([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+        VERSION="${BASH_REMATCH[1]}"
+        print_info "Auto-detected version: $VERSION from filename"
+    else
+        print_error "Could not extract version from filename: $FILENAME"
         echo ""
-        echo "Please either:"
-        echo "  1. Download the archive from GitHub Actions artifacts"
-        echo "  2. Specify the archive file as second argument"
-        echo "  3. Place the archive in the current directory"
+        echo "Please specify version explicitly:"
+        echo "  $0 <version> $ARCHIVE_FILE"
         exit 1
+    fi
+else
+    # First argument is version
+    VERSION="$1"
+    ARCHIVE_FILE="${2:-}"
+    
+    # Determine archive file
+    if [ -z "$ARCHIVE_FILE" ]; then
+        # Try to find archive in current directory (try both .tar.gz and .zip)
+        for ext in tar.gz zip; do
+            if [ -f "${APP_NAME}-${VERSION}.${ext}" ]; then
+                ARCHIVE_FILE="${APP_NAME}-${VERSION}.${ext}"
+                break
+            fi
+        done
+        
+        if [ -z "$ARCHIVE_FILE" ] || [ ! -f "$ARCHIVE_FILE" ]; then
+            print_error "Archive file not found for version $VERSION"
+            echo ""
+            echo "Tried:"
+            echo "  ${APP_NAME}-${VERSION}.tar.gz"
+            echo "  ${APP_NAME}-${VERSION}.zip"
+            echo ""
+            echo "Please either:"
+            echo "  1. Download the archive from GitHub Actions artifacts"
+            echo "  2. Specify the archive file as second argument"
+            echo "  3. Place the archive in the current directory"
+            exit 1
+        fi
     fi
 fi
 
@@ -106,10 +140,34 @@ fi
 
 print_success "Signing certificates found"
 
+# Determine archive extension and handle accordingly
+ARCHIVE_EXT="${ARCHIVE_FILE##*.}"
+ARCHIVE_BASE=$(basename "$ARCHIVE_FILE" ".${ARCHIVE_EXT}")
+
 # Copy archive to container
 print_info "Copying archive to container..."
-docker cp "$ARCHIVE_FILE" "${DOCKER_CONTAINER}:/tmp/${APP_NAME}-${VERSION}.tar.gz"
-print_success "Archive copied to container"
+if [ "$ARCHIVE_EXT" = "zip" ]; then
+    # If it's a zip, we need to extract and re-tar it, or handle it differently
+    print_warning "ZIP file detected. Converting to tar.gz..."
+    
+    # Extract zip to temp directory
+    TEMP_DIR=$(mktemp -d)
+    unzip -q "$ARCHIVE_FILE" -d "$TEMP_DIR"
+    
+    # Create tar.gz from extracted contents
+    cd "$TEMP_DIR"
+    tar -czf "/tmp/${APP_NAME}-${VERSION}.tar.gz" "${APP_NAME}" 2>/dev/null || tar -czf "/tmp/${APP_NAME}-${VERSION}.tar.gz" *
+    cd - > /dev/null
+    
+    # Copy to container
+    docker cp "/tmp/${APP_NAME}-${VERSION}.tar.gz" "${DOCKER_CONTAINER}:/tmp/${APP_NAME}-${VERSION}.tar.gz"
+    rm -rf "$TEMP_DIR" "/tmp/${APP_NAME}-${VERSION}.tar.gz"
+    print_success "ZIP converted and copied to container"
+else
+    # It's already a tar.gz
+    docker cp "$ARCHIVE_FILE" "${DOCKER_CONTAINER}:/tmp/${APP_NAME}-${VERSION}.tar.gz"
+    print_success "Archive copied to container"
+fi
 
 # Copy certificates to container
 print_info "Copying certificates to container..."
