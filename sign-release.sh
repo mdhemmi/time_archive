@@ -18,9 +18,19 @@ NC='\033[0m' # No Color
 # Configuration
 APP_NAME="files_archive"
 DOCKER_CONTAINER="nextcloud_nextcloud_app"
-CERT_DIR="$HOME/.nextcloud/certificates"
-CERT_KEY="$CERT_DIR/${APP_NAME}.key"
-CERT_CRT="$CERT_DIR/${APP_NAME}.crt"
+
+# Certificate paths - can be overridden via environment variables
+CERT_DIR="${CERT_DIR:-$HOME/.nextcloud/certificates}"
+CERT_KEY="${CERT_KEY:-$CERT_DIR/${APP_NAME}.key}"
+CERT_CRT="${CERT_CRT:-$CERT_DIR/${APP_NAME}.crt}"
+
+# Alternative common locations to check
+ALTERNATIVE_CERT_LOCATIONS=(
+    "$HOME/.nextcloud/certificates"
+    "/root/.nextcloud/certificates"
+    "./certificates"
+    "./.nextcloud/certificates"
+)
 
 # Functions
 print_error() {
@@ -123,22 +133,51 @@ fi
 
 print_success "Docker container found: $DOCKER_CONTAINER"
 
-# Check if certificates exist
-if [ ! -f "$CERT_KEY" ]; then
-    print_error "Signing key not found: $CERT_KEY"
+# Check if certificates exist (try multiple locations)
+FOUND_KEY=""
+FOUND_CRT=""
+
+# Check specified location first
+if [ -f "$CERT_KEY" ] && [ -f "$CERT_CRT" ]; then
+    FOUND_KEY="$CERT_KEY"
+    FOUND_CRT="$CERT_CRT"
+else
+    # Try alternative locations
+    for cert_dir in "${ALTERNATIVE_CERT_LOCATIONS[@]}"; do
+        test_key="$cert_dir/${APP_NAME}.key"
+        test_crt="$cert_dir/${APP_NAME}.crt"
+        if [ -f "$test_key" ] && [ -f "$test_crt" ]; then
+            FOUND_KEY="$test_key"
+            FOUND_CRT="$test_crt"
+            print_info "Found certificates in: $cert_dir"
+            break
+        fi
+    done
+fi
+
+if [ -z "$FOUND_KEY" ] || [ -z "$FOUND_CRT" ]; then
+    print_error "Signing certificates not found"
     echo ""
-    echo "Please ensure your signing certificate is at:"
+    echo "Searched in:"
     echo "  $CERT_KEY"
     echo "  $CERT_CRT"
+    for cert_dir in "${ALTERNATIVE_CERT_LOCATIONS[@]}"; do
+        echo "  $cert_dir/${APP_NAME}.key"
+        echo "  $cert_dir/${APP_NAME}.crt"
+    done
+    echo ""
+    echo "You can:"
+    echo "  1. Place certificates in one of the above locations"
+    echo "  2. Set CERT_DIR environment variable: CERT_DIR=/path/to/certs $0 ..."
+    echo "  3. Set CERT_KEY and CERT_CRT: CERT_KEY=/path/to/key CERT_CRT=/path/to/crt $0 ..."
     exit 1
 fi
 
-if [ ! -f "$CERT_CRT" ]; then
-    print_error "Signing certificate not found: $CERT_CRT"
-    exit 1
-fi
-
-print_success "Signing certificates found"
+CERT_KEY="$FOUND_KEY"
+CERT_CRT="$FOUND_CRT"
+print_success "Signing certificates found:"
+print_info "  Key: $CERT_KEY"
+print_info "  Cert: $CERT_CRT"
 
 # Determine archive extension and handle accordingly
 ARCHIVE_EXT="${ARCHIVE_FILE##*.}"
