@@ -27,7 +27,8 @@ class PageController extends Controller {
 	 * @NoCSRFRequired
 	 */
 	public function index(): TemplateResponse {
-		Util::addScript(Application::APP_ID, 'time_archive-archive');
+		// Note: Util::addScript automatically prefixes with app ID
+		Util::addScript(Application::APP_ID, 'archive');
 
 		return new TemplateResponse(Application::APP_ID, 'archive', [], 'user');
 	}

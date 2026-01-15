@@ -47,11 +47,12 @@ class Application extends App implements IBootstrap {
 		
 		// Load Files app sidebar navigation script
 		// This script will register the Archive entry in the Files app sidebar
-		Util::addScript(self::APP_ID, 'time_archive-navigation');
+		// Note: Util::addScript automatically prefixes with app ID, so we just pass the base name
+		Util::addScript(self::APP_ID, 'navigation');
 		
 		// Load script to add visible Archive link in Files app
 		// This creates a prominent button/link that users can easily find
-		Util::addScript(self::APP_ID, 'time_archive-archiveLink');
+		Util::addScript(self::APP_ID, 'archiveLink');
 	}
 }
 

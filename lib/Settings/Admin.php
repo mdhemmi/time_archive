@@ -23,7 +23,8 @@ class Admin implements ISettings {
 
 	#[\Override]
 	public function getForm(): TemplateResponse {
-		Util::addScript('time_archive', 'time_archive-main');
+		// Note: Util::addScript automatically prefixes with app ID
+		Util::addScript('time_archive', 'main');
 
 		$this->initialState->provideInitialState(
 			'doc-url',
