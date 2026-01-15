@@ -345,21 +345,75 @@ class ArchiveJob extends TimedJob {
 			$archiveFolder = $userFolder->newFolder(Constants::ARCHIVE_FOLDER);
 		}
 
-		// Generate unique filename to avoid conflicts
-		$fileName = $node->getName();
+		// Determine relative path of the node inside the user's files folder
+		$userFolderPath = rtrim($userFolder->getPath(), '/');
+		$nodePath = $node->getPath();
+
+		// Example:
+		//   $userFolderPath = /user/files
+		//   $nodePath       = /user/files/Photos/picture.jpg
+		//   $relativePath   = Photos/picture.jpg
+		if (str_starts_with($nodePath, $userFolderPath . '/')) {
+			$relativePath = substr($nodePath, strlen($userFolderPath) + 1);
+		} else {
+			// Fallback: use just the file name
+			$relativePath = $node->getName();
+		}
+
+		$relativeDir = trim(\dirname($relativePath), '/');
+		$fileName = \basename($relativePath);
+
+		// Ensure the same subfolder structure exists inside the archive folder
+		$targetFolder = $archiveFolder;
+		if ($relativeDir !== '' && $relativeDir !== '.') {
+			$segments = explode('/', $relativeDir);
+			foreach ($segments as $segment) {
+				$segment = trim($segment);
+				if ($segment === '' || $segment === '.') {
+					continue;
+				}
+
+				if ($targetFolder->nodeExists($segment)) {
+					$child = $targetFolder->get($segment);
+					if ($child instanceof Folder) {
+						$targetFolder = $child;
+					} else {
+						// Name conflict: a file exists where we want a folder.
+						// In this rare case, append a suffix to create a folder.
+						$segment .= '_folder';
+						if ($targetFolder->nodeExists($segment)) {
+							$child = $targetFolder->get($segment);
+							if ($child instanceof Folder) {
+								$targetFolder = $child;
+							} else {
+								// Give up on nesting, archive flat for this file.
+								$targetFolder = $archiveFolder;
+								break;
+							}
+						} else {
+							$targetFolder = $targetFolder->newFolder($segment);
+						}
+					}
+				} else {
+					$targetFolder = $targetFolder->newFolder($segment);
+				}
+			}
+		}
+
+		// Generate unique filename to avoid conflicts inside the target folder
 		$baseName = pathinfo($fileName, PATHINFO_FILENAME);
 		$extension = pathinfo($fileName, PATHINFO_EXTENSION);
 		$uniqueName = $fileName;
 
 		// If file with this name already exists, append counter
 		$counter = 0;
-		while ($archiveFolder->nodeExists($uniqueName)) {
+		while ($targetFolder->nodeExists($uniqueName)) {
 			$counter++;
 			$uniqueName = $baseName . ' (' . $counter . ')' . ($extension ? '.' . $extension : '');
 		}
 
-		$node->move($archiveFolder->getPath() . '/' . $uniqueName);
-		$this->logger->debug('Archived file ' . $node->getId() . ' to ' . Constants::ARCHIVE_FOLDER . '/' . $uniqueName);
+		$node->move($targetFolder->getPath() . '/' . $uniqueName);
+		$this->logger->debug('Archived file ' . $node->getId() . ' to ' . $targetFolder->getPath() . '/' . $uniqueName);
 	}
 
 	/**
