@@ -23,8 +23,9 @@ class Admin implements ISettings {
 
 	#[\Override]
 	public function getForm(): TemplateResponse {
-		// Note: Util::addScript automatically prefixes with app ID
-		Util::addScript('time_archive', 'main');
+		// Note: Webpack outputs files with app prefix (time_archive-main.js)
+		// So we need to pass the full filename including the prefix
+		Util::addScript('time_archive', 'time_archive-main');
 
 		$this->initialState->provideInitialState(
 			'doc-url',

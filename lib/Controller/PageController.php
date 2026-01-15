@@ -27,8 +27,9 @@ class PageController extends Controller {
 	 * @NoCSRFRequired
 	 */
 	public function index(): TemplateResponse {
-		// Note: Util::addScript automatically prefixes with app ID
-		Util::addScript(Application::APP_ID, 'archive');
+		// Note: Webpack outputs files with app prefix (time_archive-archive.js)
+		// So we need to pass the full filename including the prefix
+		Util::addScript(Application::APP_ID, 'time_archive-archive');
 
 		return new TemplateResponse(Application::APP_ID, 'archive', [], 'user');
 	}
