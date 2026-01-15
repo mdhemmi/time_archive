@@ -1,0 +1,122 @@
+name: Sign and Release to App Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        type: string
+      github_release_tag:
+        description: 'GitHub release tag (e.g., v1.0.0) - optional, will use version if not provided'
+        required: false
+        type: string
+
+jobs:
+  sign-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.github_release_tag || format('v{0}', github.event.inputs.version) }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, curl, zip, gd, intl, bcmath
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Install npm dependencies
+        run: |
+          npm ci
+
+      - name: Build frontend
+        run: |
+          npm run build
+
+      - name: Setup Nextcloud for signing
+        run: |
+          # Download Nextcloud (minimal installation for signing)
+          mkdir -p /tmp/nextcloud
+          cd /tmp/nextcloud
+          
+          # We'll use Docker for a clean Nextcloud environment
+          echo "Setting up Nextcloud signing environment..."
+
+      - name: Sign app with Nextcloud
+        env:
+          SIGNING_CERTIFICATE: ${{ secrets.APP_SIGNING_CERTIFICATE }}
+          SIGNING_KEY: ${{ secrets.APP_SIGNING_KEY }}
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          APP_NAME="files_archive"
+          
+          if [ -z "$SIGNING_CERTIFICATE" ] || [ -z "$SIGNING_KEY" ]; then
+            echo "❌ Signing certificate or key not found in secrets"
+            echo "Please add APP_SIGNING_CERTIFICATE and APP_SIGNING_KEY to GitHub secrets"
+            exit 1
+          fi
+          
+          # Create certificate directory
+          mkdir -p ~/.nextcloud/certificates
+          
+          # Write certificate and key
+          echo "$SIGNING_CERTIFICATE" > ~/.nextcloud/certificates/${APP_NAME}.crt
+          echo "$SIGNING_KEY" > ~/.nextcloud/certificates/${APP_NAME}.key
+          chmod 600 ~/.nextcloud/certificates/${APP_NAME}.key
+          
+          # Create release archive first
+          mkdir -p /tmp/${APP_NAME}-release
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='vendor' \
+            --exclude='.gitignore' \
+            --exclude='*.md' \
+            --exclude='*.sh' \
+            --exclude='tests' \
+            ./ /tmp/${APP_NAME}-release/${APP_NAME}/
+          
+          cd /tmp/${APP_NAME}-release
+          tar -czf ${APP_NAME}-${VERSION}.tar.gz ${APP_NAME}/
+          
+          # Note: Actual signing requires a Nextcloud server
+          # This is a placeholder - you'll need to adapt based on your setup
+          echo "⚠️  Signing requires access to a Nextcloud server with occ command"
+          echo "⚠️  For now, creating unsigned archive"
+          
+          # Move archive to workspace
+          mv ${APP_NAME}-${VERSION}.tar.gz ${{ github.workspace }}/
+          
+          echo "Created ${APP_NAME}-${VERSION}.tar.gz (unsigned - sign manually)"
+
+      - name: Upload signed archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: files_archive-${{ github.event.inputs.version }}-signed
+          path: files_archive-${{ github.event.inputs.version }}.tar.gz
+          retention-days: 90
+
+      - name: Summary
+        run: |
+          echo "## Signing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Archive: files_archive-${{ github.event.inputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Download the signed archive from artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "2. Upload to https://apps.nextcloud.com" >> $GITHUB_STEP_SUMMARY

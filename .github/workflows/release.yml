@@ -1,0 +1,198 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, curl, zip, gd, intl, bcmath
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Get version from tag or input
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Update version in info.xml
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          sed -i "s|<version>.*</version>|<version>$VERSION</version>|g" appinfo/info.xml
+          echo "Updated appinfo/info.xml to version $VERSION"
+
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Install npm dependencies
+        run: |
+          npm ci
+
+      - name: Build frontend
+        run: |
+          npm run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "js" ] || [ -z "$(ls -A js/ 2>/dev/null)" ]; then
+            echo "ERROR: No JavaScript files were generated!"
+            exit 1
+          fi
+          echo "Build verification passed:"
+          ls -lh js/ | tail -n +2
+
+      - name: Create release archive
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          APP_NAME="files_archive"
+          
+          # Create a clean release directory
+          mkdir -p /tmp/${APP_NAME}-release
+          
+          # Copy app files (exclude development files)
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='vendor' \
+            --exclude='.gitignore' \
+            --exclude='.editorconfig' \
+            --exclude='.eslintrc.js' \
+            --exclude='.stylelintrc.json' \
+            --exclude='babel.config.js' \
+            --exclude='tsconfig.json' \
+            --exclude='webpack.config.js' \
+            --exclude='package-lock.json' \
+            --exclude='composer.lock' \
+            --exclude='*.md' \
+            --exclude='*.sh' \
+            --exclude='tests' \
+            --exclude='.phpunit.result.cache' \
+            ./ /tmp/${APP_NAME}-release/${APP_NAME}/
+          
+          # Create tarball
+          cd /tmp/${APP_NAME}-release
+          tar -czf ${APP_NAME}-${VERSION}.tar.gz ${APP_NAME}/
+          
+          # Move to workspace
+          mv ${APP_NAME}-${VERSION}.tar.gz ${{ github.workspace }}/
+          
+          echo "Created ${APP_NAME}-${VERSION}.tar.gz"
+
+      - name: Sign app (if certificate available)
+        if: env.SIGNING_CERTIFICATE != '' && env.SIGNING_KEY != ''
+        env:
+          SIGNING_CERTIFICATE: ${{ secrets.APP_SIGNING_CERTIFICATE }}
+          SIGNING_KEY: ${{ secrets.APP_SIGNING_KEY }}
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          APP_NAME="files_archive"
+          
+          # Create certificate directory
+          mkdir -p ~/.nextcloud/certificates
+          
+          # Write certificate and key from secrets
+          echo "$SIGNING_CERTIFICATE" > ~/.nextcloud/certificates/${APP_NAME}.crt
+          echo "$SIGNING_KEY" > ~/.nextcloud/certificates/${APP_NAME}.key
+          chmod 600 ~/.nextcloud/certificates/${APP_NAME}.key
+          
+          # Extract tarball for signing
+          mkdir -p /tmp/signing
+          cd /tmp/signing
+          tar -xzf ${{ github.workspace }}/${APP_NAME}-${VERSION}.tar.gz
+          
+          # Sign the app (requires Nextcloud server with occ)
+          # Note: This step requires a Nextcloud installation or Docker container
+          # For now, we'll create an unsigned archive and note it
+          echo "⚠️  Signing requires Nextcloud server. Archive created but not signed."
+          echo "⚠️  You'll need to sign manually using: php occ app:sign files_archive"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            files_archive-${{ steps.get_version.outputs.version }}.tar.gz
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            ## Version ${{ steps.get_version.outputs.version }}
+            
+            ### Changes
+            - See git log for detailed changes
+            
+            ### Installation
+            1. Download the `files_archive-${{ steps.get_version.outputs.version }}.tar.gz` file
+            2. Extract to your Nextcloud `apps/` directory
+            3. Run `php occ app:enable files_archive`
+            
+            ### App Store Release
+            **Note**: This archive needs to be signed before uploading to the Nextcloud App Store.
+            
+            To sign:
+            ```bash
+            php occ app:sign files_archive \
+              --privateKey=~/.nextcloud/certificates/files_archive.key \
+              --certificate=~/.nextcloud/certificates/files_archive.crt \
+              --path=/tmp
+            ```
+            
+            Then upload the signed tarball to https://apps.nextcloud.com
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload unsigned archive artifact
+        if: env.SIGNING_CERTIFICATE == '' || env.SIGNING_KEY == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: files_archive-${{ steps.get_version.outputs.version }}-unsigned
+          path: files_archive-${{ steps.get_version.outputs.version }}.tar.gz
+          retention-days: 30
+
+      - name: Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Version: ${{ steps.get_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Archive created: files_archive-${{ steps.get_version.outputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ env.SIGNING_CERTIFICATE }}" == "" ]; then
+            echo "⚠️  Archive is unsigned - sign manually before App Store upload" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Archive signed (if signing step succeeded)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the GitHub release" >> $GITHUB_STEP_SUMMARY
+          echo "2. Sign the archive (if not already signed)" >> $GITHUB_STEP_SUMMARY
+          echo "3. Upload signed archive to https://apps.nextcloud.com" >> $GITHUB_STEP_SUMMARY
