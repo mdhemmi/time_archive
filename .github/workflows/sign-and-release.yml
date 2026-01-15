@@ -61,7 +61,7 @@ jobs:
           SIGNING_KEY: ${{ secrets.APP_SIGNING_KEY }}
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          APP_NAME="files_archive"
+          APP_NAME="time_archive"
           
           if [ -z "$SIGNING_CERTIFICATE" ] || [ -z "$SIGNING_KEY" ]; then
             echo "❌ Signing certificate or key not found in secrets"
@@ -106,8 +106,8 @@ jobs:
       - name: Upload signed archive
         uses: actions/upload-artifact@v4
         with:
-          name: files_archive-${{ github.event.inputs.version }}-signed
-          path: files_archive-${{ github.event.inputs.version }}.tar.gz
+          name: time_archive-${{ github.event.inputs.version }}-signed
+          path: time_archive-${{ github.event.inputs.version }}.tar.gz
           retention-days: 90
 
       - name: Summary
@@ -115,7 +115,7 @@ jobs:
           echo "## Signing Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "📦 Archive: files_archive-${{ github.event.inputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Archive: time_archive-${{ github.event.inputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "1. Download the signed archive from artifacts" >> $GITHUB_STEP_SUMMARY

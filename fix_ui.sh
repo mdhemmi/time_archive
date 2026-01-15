@@ -1,11 +1,14 @@
 #!/bin/bash
 # Script to fix UI caching issues
 
-echo "=== Fixing File Archive UI ==="
+echo "=== Fixing Time Archive UI ==="
 echo ""
 
-# Navigate to app directory
-cd /opt/stacks/nextcloud/apps/time_archive || exit 1
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
+
+echo "Working directory: $(pwd)"
 
 echo "1. Checking source file..."
 if grep -q "NcSelectTags\|Files tagged with" src/AdminSettings.vue 2>/dev/null; then
@@ -65,6 +68,13 @@ else
         echo "   ⚠ time_archive-time_archive-archive.js exists (wrong name - will be fixed on next build)"
     else
         echo "   ✗ time_archive-archive.js MISSING"
+    fi
+    if [ -f "js/time_archive-archiveLink.js" ]; then
+        echo "   ✓ time_archive-archiveLink.js exists"
+    elif [ -f "js/time_archive-time_archive-archiveLink.js" ]; then
+        echo "   ⚠ time_archive-time_archive-archiveLink.js exists (wrong name - will be fixed on next build)"
+    else
+        echo "   ✗ time_archive-archiveLink.js MISSING"
     fi
 fi
 

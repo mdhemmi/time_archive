@@ -1,0 +1,27 @@
+# Dependencies
+/node_modules
+/vendor
+/vendor-bin
+
+# Build output
+/js
+/build
+
+# IDE
+/.idea
+/.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+/.php-cs-fixer.cache
+/.cache
