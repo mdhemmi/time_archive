@@ -90,12 +90,13 @@ Regular users cannot:
 
 The `.archive` folder is hidden from mobile apps but accessible via the web interface:
 
-- **Favorites**: The `.archive` folder is **automatically added to Favorites** when created, making it easily accessible in the Files app sidebar
-- **Dedicated View**: Access archived files via the **Archive** app entry in the top navigation bar
+- **Dedicated Archive View**: The easiest way to access archived files is via the **Archive** app entry in the top navigation bar (next to the Nextcloud logo). This provides a dedicated interface listing all your archived files.
+- **Show Hidden Files**: Enable "Show hidden files" in Files app settings to see the `.archive` folder in the folder tree and Favorites section.
 - **Direct URL**: You can also access it directly via: `https://your-nextcloud.com/index.php/apps/files/?dir=/.archive`
-- **Show Hidden Files**: Alternatively, enable "Show hidden files" in Files app settings to see it in the folder tree
 
-**Note**: For existing `.archive` folders created before this feature, run `php occ maintenance:repair` to add them to favorites automatically.
+**Important Note**: The `.archive` folder is dot-prefixed (hidden) to prevent mobile/desktop clients from syncing it. Due to Nextcloud's Files app behavior, **dot-prefixed folders do not appear in the Favorites section** when "Show hidden files" is disabled, even if they are favorited. To see it in Favorites, you must enable "Show hidden files" in Files app settings. Alternatively, use the dedicated **Archive** app view for the best experience.
+
+**Note**: For existing `.archive` folders created before the favorite feature, run `php occ maintenance:repair` to add them to favorites (they will appear in Favorites only when "Show hidden files" is enabled).
 
 ## Development
 

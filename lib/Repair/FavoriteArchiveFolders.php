@@ -41,13 +41,15 @@ class FavoriteArchiveFolders implements IRepairStep {
 	#[\Override]
 	public function run(IOutput $output): void {
 		$output->info('Adding existing .archive folders to favorites...');
+		error_log('[Files Archive Repair] Starting favorite archive folders repair step');
 		
 		$processed = 0;
 		$added = 0;
 		$errors = 0;
+		$skipped = 0;
 		
 		// Iterate through all users
-		$this->userManager->callForAllUsers(function (IUser $user) use (&$processed, &$added, &$errors, $output) {
+		$this->userManager->callForAllUsers(function (IUser $user) use (&$processed, &$added, &$errors, &$skipped, $output) {
 			$userId = $user->getUID();
 			$processed++;
 			
@@ -59,34 +61,55 @@ class FavoriteArchiveFolders implements IRepairStep {
 					$archiveNode = $userFolder->get(Constants::ARCHIVE_FOLDER);
 					if (!$archiveNode instanceof Folder) {
 						// Not a folder, skip
+						$output->debug("User {$userId}: .archive exists but is not a folder");
+						$skipped++;
 						return;
 					}
 					
+					$fileId = $archiveNode->getId();
+					error_log("[Files Archive Repair] Found .archive folder for user {$userId} (file ID: {$fileId})");
+					
 					// Check if already favorited
 					if ($this->isFavorited($archiveNode)) {
-						$output->debug("User {$userId}: .archive folder already favorited");
+						$output->info("User {$userId}: .archive folder already favorited");
+						error_log("[Files Archive Repair] User {$userId}: .archive folder already favorited");
+						$skipped++;
 						return;
 					}
 					
 					// Add to favorites
-					$this->addToFavorites($archiveNode);
-					$added++;
-					$output->info("Added .archive folder to favorites for user: {$userId}");
+					error_log("[Files Archive Repair] Attempting to add .archive folder to favorites for user {$userId}");
+					$result = $this->addToFavorites($archiveNode);
+					if ($result) {
+						$added++;
+						$output->info("✓ Added .archive folder to favorites for user: {$userId}");
+						error_log("[Files Archive Repair] ✓ Successfully added .archive folder to favorites for user {$userId}");
+					} else {
+						$errors++;
+						$output->warning("✗ Failed to add .archive folder to favorites for user: {$userId} (check logs)");
+						error_log("[Files Archive Repair] ✗ Failed to add .archive folder to favorites for user {$userId}");
+					}
 					
 				} catch (NotFoundException $e) {
 					// No .archive folder for this user, skip
 					$output->debug("User {$userId}: No .archive folder found");
+					$skipped++;
 				}
 			} catch (Exception $e) {
 				$errors++;
-				$output->warning("Failed to process user {$userId}: " . $e->getMessage());
+				$errorMsg = "Failed to process user {$userId}: " . $e->getMessage();
+				$output->warning($errorMsg);
+				error_log("[Files Archive Repair] ERROR: {$errorMsg}");
+				error_log("[Files Archive Repair] Stack trace: " . $e->getTraceAsString());
 				$this->logger->error('Failed to add .archive folder to favorites for user ' . $userId, [
 					'exception' => $e,
 				]);
 			}
 		});
 		
-		$output->info("Processed {$processed} users, added {$added} folders to favorites, {$errors} errors");
+		$summary = "Processed {$processed} users, added {$added} folders to favorites, {$skipped} skipped, {$errors} errors";
+		$output->info($summary);
+		error_log("[Files Archive Repair] {$summary}");
 	}
 	
 	/**
@@ -123,8 +146,10 @@ class FavoriteArchiveFolders implements IRepairStep {
 	/**
 	 * Add the archive folder to favorites
 	 * Same logic as in ArchiveJob::addToFavorites()
+	 * 
+	 * @return bool True if successfully added, false otherwise
 	 */
-	private function addToFavorites(Folder $archiveFolder): void {
+	private function addToFavorites(Folder $archiveFolder): bool {
 		try {
 			$fileId = $archiveFolder->getId();
 			$userId = $archiveFolder->getOwner()->getUID();
@@ -148,26 +173,45 @@ class FavoriteArchiveFolders implements IRepairStep {
 			if ($favoriteTag === null) {
 				try {
 					// Try to create a favorite tag
+					error_log("[Files Archive Repair] No favorite tag found, attempting to create one...");
 					$favoriteTag = $this->tagManager->createTag('favorite', true, true);
 					$this->logger->debug('Created favorite tag for archive folder');
+					error_log("[Files Archive Repair] Created favorite tag with ID: " . $favoriteTag->getId());
 				} catch (Exception $e) {
 					// If we can't create the tag, log and continue
-					$this->logger->debug('Could not create favorite tag: ' . $e->getMessage());
-					error_log('Files Archive: Could not add archive folder to favorites automatically for user ' . $userId);
-					return;
+					$errorMsg = 'Could not create favorite tag: ' . $e->getMessage();
+					$this->logger->debug($errorMsg);
+					error_log("[Files Archive Repair] ERROR: {$errorMsg}");
+					error_log("[Files Archive Repair] Stack trace: " . $e->getTraceAsString());
+					return false;
 				}
+			} else {
+				error_log("[Files Archive Repair] Found existing favorite tag: ID={$favoriteTag->getId()}, Name={$favoriteTag->getName()}");
 			}
 			
 			// Assign the favorite tag to the archive folder
+			error_log("[Files Archive Repair] Assigning favorite tag {$favoriteTag->getId()} to file {$fileId}");
 			$this->tagMapper->assignTags($fileId, 'files', [(string)$favoriteTag->getId()]);
-			$this->logger->info('Added archive folder to favorites (file ID: ' . $fileId . ', user: ' . $userId . ')');
-			error_log('Files Archive: Added .archive folder to favorites for user ' . $userId);
+			
+			// Verify it was assigned
+			$tags = $this->tagMapper->getTagIdsForObjects([$fileId], 'files');
+			if (!empty($tags[$fileId]) && in_array((string)$favoriteTag->getId(), $tags[$fileId])) {
+				$this->logger->info('Added archive folder to favorites (file ID: ' . $fileId . ', user: ' . $userId . ')');
+				error_log("[Files Archive Repair] ✓ Verified: Favorite tag successfully assigned to file {$fileId}");
+				return true;
+			} else {
+				error_log("[Files Archive Repair] ✗ WARNING: Tag assignment may have failed - tag not found after assignment");
+				return false;
+			}
 		} catch (Exception $e) {
 			// Log but don't fail - favorite assignment is best effort
-			$this->logger->warning('Failed to add archive folder to favorites: ' . $e->getMessage(), [
+			$errorMsg = 'Failed to add archive folder to favorites: ' . $e->getMessage();
+			$this->logger->warning($errorMsg, [
 				'exception' => $e,
 			]);
-			error_log('Files Archive: Failed to add archive folder to favorites: ' . $e->getMessage());
+			error_log("[Files Archive Repair] ERROR: {$errorMsg}");
+			error_log("[Files Archive Repair] Stack trace: " . $e->getTraceAsString());
+			return false;
 		}
 	}
 }

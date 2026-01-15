@@ -8,6 +8,7 @@ webpackConfig.entry = {
 	'main': './src/main.js',
 	'navigation': './src/filesNavigation.js',
 	'archive': './src/archive.js',
+	'archiveLink': './src/filesArchiveLink.js',
 }
 
 // Ensure output directory is explicitly set to js/
