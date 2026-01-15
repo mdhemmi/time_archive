@@ -32,7 +32,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
+          # Note: cache disabled since package-lock.json is not in repository
+          # To enable caching, commit package-lock.json first
 
       - name: Get version from tag or input
         id: get_version
@@ -57,7 +58,7 @@ jobs:
 
       - name: Install npm dependencies
         run: |
-          npm ci
+          npm install
 
       - name: Build frontend
         run: |
