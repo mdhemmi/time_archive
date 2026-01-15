@@ -43,7 +43,8 @@ class Application extends App implements IBootstrap {
 			error_log('[Files Archive] Error registering navigation in boot(): ' . $e->getMessage());
 		}
 		
-		// Also try Files app sidebar navigation (fallback)
+		// Load Files app sidebar navigation script
+		// This script will register the Archive entry in the Files app sidebar
 		Util::addScript(self::APP_ID, 'files_archive-navigation');
 	}
 }
