@@ -20,7 +20,7 @@ This guide explains how to obtain signing certificates required to publish your 
    - Go to "My apps" or "Developer"
    - Click "Register new app" or "Add app"
    - Fill in:
-     - **App ID**: `files_archive` (must match `appinfo/info.xml`)
+     - **App ID**: `time_archive` (must match `appinfo/info.xml`)
      - **App Name**: Files Archive
      - **Description**: Brief description of your app
      - **Category**: Tools or Files
@@ -36,19 +36,19 @@ mkdir -p ~/.nextcloud/certificates
 cd ~/.nextcloud/certificates
 
 # Generate private key and CSR in one command
-# Replace APP_ID with your app ID: files_archive
+# Replace APP_ID with your app ID: time_archive
 openssl req -nodes -newkey rsa:4096 \
-  -keyout files_archive.key \
-  -out files_archive.csr \
-  -subj "/CN=files_archive"
+  -keyout time_archive.key \
+  -out time_archive.csr \
+  -subj "/CN=time_archive"
 
 # Set secure permissions on the private key
-chmod 600 files_archive.key
+chmod 600 time_archive.key
 ```
 
 **Important**: 
-- Keep the private key (`files_archive.key`) secure and private. Never share it or commit it to version control.
-- The Common Name (CN) in the CSR must be your app ID: `files_archive`
+- Keep the private key (`time_archive.key`) secure and private. Never share it or commit it to version control.
+- The Common Name (CN) in the CSR must be your app ID: `time_archive`
 
 ### Step 3: Submit CSR to Certificate Repository
 
@@ -59,7 +59,7 @@ chmod 600 files_archive.key
 ### Step 4: Obtain the Certificate
 
 1. **After your CSR is processed**, you'll receive a certificate file
-2. **Save the certificate** to `~/.nextcloud/certificates/files_archive.crt`
+2. **Save the certificate** to `~/.nextcloud/certificates/time_archive.crt`
 3. **The certificate should be in PEM format** (text format with `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----`)
 
 ### Step 5: Generate Signature Over App ID
@@ -67,8 +67,8 @@ chmod 600 files_archive.key
 You need to generate a signature over your app ID using your private key:
 
 ```bash
-# Generate signature (replace files_archive with your app ID)
-echo -n "files_archive" | openssl dgst -sha512 -sign ~/.nextcloud/certificates/files_archive.key | openssl base64
+# Generate signature (replace time_archive with your app ID)
+echo -n "time_archive" | openssl dgst -sha512 -sign ~/.nextcloud/certificates/time_archive.key | openssl base64
 ```
 
 **Copy the entire output** - this is your signature that you'll paste into the registration form.
@@ -77,7 +77,7 @@ echo -n "files_archive" | openssl dgst -sha512 -sign ~/.nextcloud/certificates/f
 
 1. **Go to the registration page** on https://apps.nextcloud.com
 2. **Fill in the form**:
-   - **Public certificate**: Open `files_archive.crt` and copy the entire contents (including `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` lines) into the text area
+   - **Public certificate**: Open `time_archive.crt` and copy the entire contents (including `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` lines) into the text area
    - **Signature over your app's ID**: Paste the signature you generated in Step 5
 3. **Click "Register"**
 
@@ -86,15 +86,15 @@ echo -n "files_archive" | openssl dgst -sha512 -sign ~/.nextcloud/certificates/f
 ### Step 7: Verify Your Certificates
 
 You should now have:
-- `~/.nextcloud/certificates/files_archive.key` (private key - keep secret!)
-- `~/.nextcloud/certificates/files_archive.crt` (certificate from certificate repository)
+- `~/.nextcloud/certificates/time_archive.key` (private key - keep secret!)
+- `~/.nextcloud/certificates/time_archive.crt` (certificate from certificate repository)
 
 Verify they match:
 
 ```bash
 # Check that the certificate matches the key
-openssl x509 -noout -modulus -in files_archive.crt | openssl md5
-openssl rsa -noout -modulus -in files_archive.key | openssl md5
+openssl x509 -noout -modulus -in time_archive.crt | openssl md5
+openssl rsa -noout -modulus -in time_archive.key | openssl md5
 ```
 
 Both commands should output the same MD5 hash. If they match, your certificate is valid.
@@ -105,9 +105,9 @@ You can test the signing process:
 
 ```bash
 # On your Nextcloud server
-php /var/www/html/occ app:sign files_archive \
-  --privateKey=~/.nextcloud/certificates/files_archive.key \
-  --certificate=~/.nextcloud/certificates/files_archive.crt \
+php /var/www/html/occ app:sign time_archive \
+  --privateKey=~/.nextcloud/certificates/time_archive.key \
+  --certificate=~/.nextcloud/certificates/time_archive.crt \
   --path=/tmp
 ```
 
@@ -116,8 +116,8 @@ php /var/www/html/occ app:sign files_archive \
 1. **Backup your private key**:
    ```bash
    # Create a secure backup
-   tar -czf files_archive-certificates-backup.tar.gz \
-     ~/.nextcloud/certificates/files_archive.*
+   tar -czf time_archive-certificates-backup.tar.gz \
+     ~/.nextcloud/certificates/time_archive.*
    # Store this backup in a secure location (encrypted storage, password manager, etc.)
    ```
 
@@ -145,7 +145,7 @@ php /var/www/html/occ app:sign files_archive \
 ### "Certificate not found" error
 
 - Verify the certificate file exists: `ls -la ~/.nextcloud/certificates/`
-- Check file permissions: `chmod 600 ~/.nextcloud/certificates/files_archive.key`
+- Check file permissions: `chmod 600 ~/.nextcloud/certificates/time_archive.key`
 - Ensure the certificate matches the key (see Step 6)
 
 ### "Invalid certificate" error
@@ -156,8 +156,8 @@ php /var/www/html/occ app:sign files_archive \
 
 ### "Permission denied" error
 
-- Ensure the key file is readable: `chmod 600 files_archive.key`
-- Check that you own the files: `chown $USER:$USER files_archive.*`
+- Ensure the key file is readable: `chmod 600 time_archive.key`
+- Check that you own the files: `chown $USER:$USER time_archive.*`
 
 ## Alternative: Using the Signing Script
 
@@ -165,10 +165,10 @@ Once you have the certificates, you can use the provided signing script:
 
 ```bash
 # Make sure certificates are in the expected location
-ls ~/.nextcloud/certificates/files_archive.*
+ls ~/.nextcloud/certificates/time_archive.*
 
 # Run the signing script
-./sign-release.sh files_archive-1.0.0.tar.gz
+./sign-release.sh time_archive-1.0.0.tar.gz
 ```
 
 The script will automatically find the certificates if they're in:

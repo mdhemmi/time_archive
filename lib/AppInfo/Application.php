@@ -5,12 +5,12 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-namespace OCA\Files_Archive\AppInfo;
+namespace OCA\Time_Archive\AppInfo;
 
-use OCA\Files_Archive\EventListener;
-use OCA\Files_Archive\Navigation\NavigationManager;
-use OCA\Files_Archive\Notification\Notifier;
-use OCA\Files_Archive\Repair\FavoriteArchiveFolders;
+use OCA\Time_Archive\EventListener;
+use OCA\Time_Archive\Navigation\NavigationManager;
+use OCA\Time_Archive\Notification\Notifier;
+use OCA\Time_Archive\Repair\FavoriteArchiveFolders;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -19,7 +19,7 @@ use OCP\SystemTag\ManagerEvent;
 use OCP\Util;
 
 class Application extends App implements IBootstrap {
-	public const APP_ID = 'files_archive';
+	public const APP_ID = 'time_archive';
 
 	public function __construct(array $urlParams = []) {
 		parent::__construct(self::APP_ID, $urlParams);
@@ -40,18 +40,18 @@ class Application extends App implements IBootstrap {
 			// Register top navigation entry
 			$navigationManager = $container->get(NavigationManager::class);
 			$navigationManager->register();
-			error_log('[Files Archive] NavigationManager registered in boot()');
+			error_log('[Time Archive] NavigationManager registered in boot()');
 		} catch (\Exception $e) {
-			error_log('[Files Archive] Error registering navigation in boot(): ' . $e->getMessage());
+			error_log('[Time Archive] Error registering navigation in boot(): ' . $e->getMessage());
 		}
 		
 		// Load Files app sidebar navigation script
 		// This script will register the Archive entry in the Files app sidebar
-		Util::addScript(self::APP_ID, 'files_archive-navigation');
+		Util::addScript(self::APP_ID, 'time_archive-navigation');
 		
 		// Load script to add visible Archive link in Files app
 		// This creates a prominent button/link that users can easily find
-		Util::addScript(self::APP_ID, 'files_archive-archiveLink');
+		Util::addScript(self::APP_ID, 'time_archive-archiveLink');
 	}
 }
 

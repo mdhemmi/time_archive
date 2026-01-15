@@ -5,9 +5,9 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-namespace OCA\Files_Archive\Settings;
+namespace OCA\Time_Archive\Settings;
 
-use OCA\Files_Archive\AppInfo\Application;
+use OCA\Time_Archive\AppInfo\Application;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IURLGenerator;
@@ -23,14 +23,14 @@ class Admin implements ISettings {
 
 	#[\Override]
 	public function getForm(): TemplateResponse {
-		Util::addScript('files_archive', 'files_archive-main');
+		Util::addScript('time_archive', 'time_archive-main');
 
 		$this->initialState->provideInitialState(
 			'doc-url',
-			$this->url->linkToDocs('admin-files-archive')
+			$this->url->linkToDocs('admin-time-archive')
 		);
 
-		return new TemplateResponse('files_archive', 'admin', [], '');
+		return new TemplateResponse('time_archive', 'admin', [], '');
 	}
 
 	#[\Override]

@@ -11,7 +11,7 @@ import { generateOcsUrl } from '@nextcloud/router'
  * @return {object} The axios response
  */
 const createArchiveRule = async function(rule) {
-	return axios.post(generateOcsUrl('/apps/files_archive/api/v1/rules'), rule)
+	return axios.post(generateOcsUrl('/apps/time_archive/api/v1/rules'), rule)
 }
 
 /**
@@ -19,14 +19,14 @@ const createArchiveRule = async function(rule) {
  * @return {object} The axios response
  */
 const deleteArchiveRule = async function(ruleId) {
-	return axios.delete(generateOcsUrl('/apps/files_archive/api/v1/rules/{ruleId}', { ruleId }))
+	return axios.delete(generateOcsUrl('/apps/time_archive/api/v1/rules/{ruleId}', { ruleId }))
 }
 
 /**
  * @return {object} The axios response
  */
 const getArchiveRules = async function() {
-	return axios.get(generateOcsUrl('/apps/files_archive/api/v1/rules'))
+	return axios.get(generateOcsUrl('/apps/time_archive/api/v1/rules'))
 }
 
 /**
@@ -34,7 +34,7 @@ const getArchiveRules = async function() {
  * @return {object} The axios response
  */
 const runArchiveJob = async function() {
-	return axios.post(generateOcsUrl('/apps/files_archive/api/v1/run'))
+	return axios.post(generateOcsUrl('/apps/time_archive/api/v1/run'))
 }
 
 /**
@@ -42,7 +42,7 @@ const runArchiveJob = async function() {
  * @return {object} The axios response
  */
 const getArchivedFiles = async function() {
-	return axios.get(generateOcsUrl('/apps/files_archive/api/v1/files'))
+	return axios.get(generateOcsUrl('/apps/time_archive/api/v1/files'))
 }
 
 export {

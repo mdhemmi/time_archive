@@ -7,15 +7,15 @@
 		<div class="archive-view__header">
 			<h2 class="archive-view__title">
 				<Archive :size="24" />
-				{{ t('files_archive', 'Archived Files') }}
+				{{ t('time_archive', 'Archived Files') }}
 			</h2>
 			<p class="archive-view__description">
-				{{ t('files_archive', 'Files that have been automatically archived based on your archive rules.') }}
+				{{ t('time_archive', 'Files that have been automatically archived based on your archive rules.') }}
 			</p>
 		</div>
 
 		<div v-if="loading" class="archive-view__loading">
-			<p>{{ t('files_archive', 'Loading archived files...') }}</p>
+			<p>{{ t('time_archive', 'Loading archived files...') }}</p>
 		</div>
 
 		<div v-else-if="error" class="archive-view__error">
@@ -24,23 +24,23 @@
 
 		<div v-else-if="files.length === 0" class="archive-view__empty">
 			<Archive :size="64" />
-			<h3>{{ t('files_archive', 'No archived files') }}</h3>
-			<p>{{ t('files_archive', 'Files will appear here once they have been archived by your archive rules.') }}</p>
+			<h3>{{ t('time_archive', 'No archived files') }}</h3>
+			<p>{{ t('time_archive', 'Files will appear here once they have been archived by your archive rules.') }}</p>
 		</div>
 
 		<div v-else class="archive-view__content">
 			<div class="archive-view__stats">
-				{{ t('files_archive', '{count} archived file', { count: files.length }, files.length) }}
+				{{ t('time_archive', '{count} archived file', { count: files.length }, files.length) }}
 				({{ formatTotalSize() }})
 			</div>
 
 			<table class="archive-view__table">
 				<thead>
 					<tr>
-						<th>{{ t('files_archive', 'Name') }}</th>
-						<th>{{ t('files_archive', 'Size') }}</th>
-						<th>{{ t('files_archive', 'Modified') }}</th>
-						<th>{{ t('files_archive', 'Actions') }}</th>
+						<th>{{ t('time_archive', 'Name') }}</th>
+						<th>{{ t('time_archive', 'Size') }}</th>
+						<th>{{ t('time_archive', 'Modified') }}</th>
+						<th>{{ t('time_archive', 'Actions') }}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -53,12 +53,12 @@
 						<td>
 							<NcButton
 								type="tertiary"
-								:aria-label="t('files_archive', 'Open {file}', { file: file.name })"
+								:aria-label="t('time_archive', 'Open {file}', { file: file.name })"
 								@click="openFile(file)">
 								<template #icon>
 									<Download :size="16" />
 								</template>
-								{{ t('files_archive', 'Open') }}
+								{{ t('time_archive', 'Open') }}
 							</NcButton>
 						</td>
 					</tr>
@@ -103,9 +103,9 @@ export default {
 				// Handle both OCS and direct response formats
 				this.files = response.data?.ocs?.data?.files || response.data?.files || []
 			} catch (e) {
-				this.error = t('files_archive', 'Failed to load archived files')
+				this.error = t('time_archive', 'Failed to load archived files')
 				console.error('Error loading archived files:', e)
-				showError(t('files_archive', 'Failed to load archived files'))
+				showError(t('time_archive', 'Failed to load archived files'))
 			} finally {
 				this.loading = false
 			}

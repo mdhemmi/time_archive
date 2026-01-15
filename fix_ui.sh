@@ -5,7 +5,7 @@ echo "=== Fixing File Archive UI ==="
 echo ""
 
 # Navigate to app directory
-cd /opt/stacks/nextcloud/apps/files_archive || exit 1
+cd /opt/stacks/nextcloud/apps/time_archive || exit 1
 
 echo "1. Checking source file..."
 if grep -q "NcSelectTags\|Files tagged with" src/AdminSettings.vue 2>/dev/null; then
@@ -45,26 +45,26 @@ else
     echo ""
     echo "   Verifying required files exist:"
     # Check for files with correct naming (after webpack prefix)
-    if [ -f "js/files_archive-main.js" ]; then
-        echo "   ✓ files_archive-main.js exists"
-    elif [ -f "js/files_archive-files_archive-main.js" ]; then
-        echo "   ⚠ files_archive-files_archive-main.js exists (wrong name - will be fixed on next build)"
+    if [ -f "js/time_archive-main.js" ]; then
+        echo "   ✓ time_archive-main.js exists"
+    elif [ -f "js/time_archive-time_archive-main.js" ]; then
+        echo "   ⚠ time_archive-time_archive-main.js exists (wrong name - will be fixed on next build)"
     else
-        echo "   ✗ files_archive-main.js MISSING"
+        echo "   ✗ time_archive-main.js MISSING"
     fi
-    if [ -f "js/files_archive-navigation.js" ]; then
-        echo "   ✓ files_archive-navigation.js exists"
-    elif [ -f "js/files_archive-files_archive-navigation.js" ]; then
-        echo "   ⚠ files_archive-files_archive-navigation.js exists (wrong name - will be fixed on next build)"
+    if [ -f "js/time_archive-navigation.js" ]; then
+        echo "   ✓ time_archive-navigation.js exists"
+    elif [ -f "js/time_archive-time_archive-navigation.js" ]; then
+        echo "   ⚠ time_archive-time_archive-navigation.js exists (wrong name - will be fixed on next build)"
     else
-        echo "   ✗ files_archive-navigation.js MISSING"
+        echo "   ✗ time_archive-navigation.js MISSING"
     fi
-    if [ -f "js/files_archive-archive.js" ]; then
-        echo "   ✓ files_archive-archive.js exists"
-    elif [ -f "js/files_archive-files_archive-archive.js" ]; then
-        echo "   ⚠ files_archive-files_archive-archive.js exists (wrong name - will be fixed on next build)"
+    if [ -f "js/time_archive-archive.js" ]; then
+        echo "   ✓ time_archive-archive.js exists"
+    elif [ -f "js/time_archive-time_archive-archive.js" ]; then
+        echo "   ⚠ time_archive-time_archive-archive.js exists (wrong name - will be fixed on next build)"
     else
-        echo "   ✗ files_archive-archive.js MISSING"
+        echo "   ✗ time_archive-archive.js MISSING"
     fi
 fi
 

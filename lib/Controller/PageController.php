@@ -6,9 +6,9 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-namespace OCA\Files_Archive\Controller;
+namespace OCA\Time_Archive\Controller;
 
-use OCA\Files_Archive\AppInfo\Application;
+use OCA\Time_Archive\AppInfo\Application;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IRequest;
@@ -27,7 +27,7 @@ class PageController extends Controller {
 	 * @NoCSRFRequired
 	 */
 	public function index(): TemplateResponse {
-		Util::addScript(Application::APP_ID, 'files_archive-archive');
+		Util::addScript(Application::APP_ID, 'time_archive-archive');
 
 		return new TemplateResponse(Application::APP_ID, 'archive', [], 'user');
 	}

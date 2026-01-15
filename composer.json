@@ -1,11 +1,11 @@
 {
 	"autoload": {
 		"psr-4": {
-			"OCA\\Files_Archive\\": "lib/"
+			"OCA\\Time_Archive\\": "lib/"
 		}
 	},
-	"name": "nextcloud/files_archive",
-	"description": "files_archive",
+	"name": "nextcloud/time_archive",
+	"description": "time_archive",
 	"license": "AGPL",
 	"config": {
 		"optimize-autoloader": true,

@@ -6,7 +6,7 @@ declare(strict_types=1);
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\Files_Archive\Migration;
+namespace OCA\Time_Archive\Migration;
 
 use Closure;
 use OCP\DB\ISchemaWrapper;

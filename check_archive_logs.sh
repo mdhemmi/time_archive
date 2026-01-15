@@ -5,12 +5,12 @@ echo "=== Checking Archive Job Logs ==="
 echo ""
 
 echo "1. Checking Nextcloud application logs for archive activity..."
-echo "   (Looking for 'archive', 'files_archive', 'Running time-based', 'Archiving file', etc.)"
+echo "   (Looking for 'archive', 'time_archive', 'Running time-based', 'Archiving file', etc.)"
 echo ""
 
 # Check Docker logs
 echo "Recent archive-related log entries:"
-docker logs nextcloud_nextcloud_app --tail 100 2>&1 | grep -i -E "archive|files_archive|Running time-based|Archiving file|Skipping file|archive before" | tail -20
+docker logs nextcloud_nextcloud_app --tail 100 2>&1 | grep -i -E "archive|time_archive|Running time-based|Archiving file|Skipping file|archive before" | tail -20
 
 echo ""
 echo "2. If no output above, checking all recent logs:"

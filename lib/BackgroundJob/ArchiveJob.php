@@ -5,11 +5,11 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-namespace OCA\Files_Archive\BackgroundJob;
+namespace OCA\Time_Archive\BackgroundJob;
 
 use Exception;
 use OC\Files\Filesystem;
-use OCA\Files_Archive\Constants;
+use OCA\Time_Archive\Constants;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 use OCP\BackgroundJob\TimedJob;
@@ -100,15 +100,15 @@ class ArchiveJob extends TimedJob {
 		if ($tagId !== null) {
 			// Tag-based archiving
 			$this->logger->info("Running archive for Tag $tagId with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
-			error_log("Files Archive: Running archive for Tag $tagId with archive before " . $archiveBefore->format('Y-m-d H:i:s'));
+			error_log("Time Archive: Running archive for Tag $tagId with archive before " . $archiveBefore->format('Y-m-d H:i:s'));
 			$this->archiveByTag($tagId, $archiveBefore, $timeAfter);
 		} else {
 			// Time-based archiving - archive all files for all users
 			$this->logger->info("Running time-based archive (Rule $ruleId) with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
-			error_log("Files Archive: Running time-based archive (Rule $ruleId) with archive before " . $archiveBefore->format('Y-m-d H:i:s'));
+			error_log("Time Archive: Running time-based archive (Rule $ruleId) with archive before " . $archiveBefore->format('Y-m-d H:i:s'));
 			$stats = $this->archiveByTime($archiveBefore, $timeAfter);
 			$this->logger->info("Archive job completed: " . json_encode($stats));
-			error_log("Files Archive: Archive job completed - " . json_encode($stats));
+			error_log("Time Archive: Archive job completed - " . json_encode($stats));
 		}
 	}
 
@@ -156,12 +156,12 @@ class ArchiveJob extends TimedJob {
 			'filesChecked' => 0,
 		];
 		
-		error_log("Files Archive: Starting to process all users. Archive threshold: " . $archiveBefore->format('Y-m-d H:i:s'));
+		error_log("Time Archive: Starting to process all users. Archive threshold: " . $archiveBefore->format('Y-m-d H:i:s'));
 		
 		$this->userManager->callForAllUsers(function ($user) use ($archiveBefore, $timeAfter, &$stats) {
 			$userId = $user->getUID();
 			try {
-				error_log("Files Archive: Processing user: $userId");
+				error_log("Time Archive: Processing user: $userId");
 				$userFolder = $this->rootFolder->getUserFolder($userId);
 				if (!Filesystem::$loaded) {
 					Filesystem::init($userId, '/' . $userId . '/files');
@@ -173,7 +173,7 @@ class ArchiveJob extends TimedJob {
 				$stats['filesChecked'] += $userStats['filesChecked'];
 				
 				if ($userStats['filesChecked'] > 0) {
-					error_log("Files Archive: User $userId - Checked: {$userStats['filesChecked']}, Archived: {$userStats['filesArchived']}");
+					error_log("Time Archive: User $userId - Checked: {$userStats['filesChecked']}, Archived: {$userStats['filesArchived']}");
 				}
 			} catch (Exception $e) {
 				$errorMsg = "Failed to archive files for user $userId: " . $e->getMessage();
@@ -184,7 +184,7 @@ class ArchiveJob extends TimedJob {
 			}
 		});
 		
-		error_log("Files Archive: Completed processing. Total users: {$stats['usersProcessed']}, Files checked: {$stats['filesChecked']}, Files archived: {$stats['filesArchived']}");
+		error_log("Time Archive: Completed processing. Total users: {$stats['usersProcessed']}, Files checked: {$stats['filesChecked']}, Files archived: {$stats['filesArchived']}");
 		
 		return $stats;
 	}
@@ -465,7 +465,7 @@ class ArchiveJob extends TimedJob {
 					
 					// Alternative: Use WebDAV property or database directly
 					// For now, we'll log and continue - the user can manually favorite it
-					error_log('Files Archive: Could not add archive folder to favorites automatically. User can manually favorite the .archive folder.');
+					error_log('Time Archive: Could not add archive folder to favorites automatically. User can manually favorite the .archive folder.');
 					return;
 				}
 			}
@@ -473,13 +473,13 @@ class ArchiveJob extends TimedJob {
 			// Assign the favorite tag to the archive folder
 			$this->tagMapper->assignTags($fileId, 'files', [(string)$favoriteTag->getId()]);
 			$this->logger->info('Added archive folder to favorites (file ID: ' . $fileId . ', user: ' . $userId . ')');
-			error_log('Files Archive: Added .archive folder to favorites for user ' . $userId);
+			error_log('Time Archive: Added .archive folder to favorites for user ' . $userId);
 		} catch (Exception $e) {
 			// Log but don't fail - favorite assignment is best effort
 			$this->logger->warning('Failed to add archive folder to favorites: ' . $e->getMessage(), [
 				'exception' => $e,
 			]);
-			error_log('Files Archive: Failed to add archive folder to favorites: ' . $e->getMessage());
+			error_log('Time Archive: Failed to add archive folder to favorites: ' . $e->getMessage());
 		}
 	}
 

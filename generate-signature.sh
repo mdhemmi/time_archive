@@ -8,7 +8,7 @@
 
 set -e
 
-APP_ID="${1:-files_archive}"
+APP_ID="${1:-time_archive}"
 CERT_KEY="${2:-$HOME/.nextcloud/certificates/${APP_ID}.key}"
 
 # Check if key exists
@@ -18,9 +18,9 @@ if [ ! -f "$CERT_KEY" ]; then
     echo "Usage: $0 [app-id] [key-path]"
     echo ""
     echo "Examples:"
-    echo "  $0                                    # Uses default: files_archive"
-    echo "  $0 files_archive                     # Specify app ID"
-    echo "  $0 files_archive /path/to/key.key    # Specify app ID and key path"
+    echo "  $0                                    # Uses default: time_archive"
+    echo "  $0 time_archive                     # Specify app ID"
+    echo "  $0 time_archive /path/to/key.key    # Specify app ID and key path"
     exit 1
 fi
 

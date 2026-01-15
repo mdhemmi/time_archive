@@ -5,14 +5,14 @@
 -->
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
-	<id>files_archive</id>
-	<name>File Archive</name>
+	<id>time_archive</id>
+	<name>Time Archive</name>
 	<summary>Automatically archive files based on age. Archived files are moved to .archive folder (hidden from mobile apps).</summary>
 	<description>An app for Nextcloud to automatically archive files based on file age. Configure rules to archive files older than a specified time period (e.g., 1 year). Archived files are moved to the .archive folder for each user, which is hidden from mobile apps to prevent re-uploading but remains accessible via the web interface. Perfect for organizing old files while keeping them accessible.</description>
 	<version>1.0.0</version>
 	<licence>agpl</licence>
 	<author>Nextcloud Contributors</author>
-	<namespace>Files_Archive</namespace>
+	<namespace>Time_Archive</namespace>
 
 	<documentation>
 		<admin>https://docs.nextcloud.com/server/stable/admin_manual/file_workflows/archive.html</admin>
@@ -20,19 +20,19 @@
 
 	<category>tools</category>
 
-	<screenshot>https://raw.githubusercontent.com/nextcloud/files_archive/main/img/app.svg</screenshot>
+	<screenshot>https://raw.githubusercontent.com/nextcloud/time_archive/main/img/app.svg</screenshot>
 
-	<website>https://github.com/nextcloud/files_archive</website>
-	<bugs>https://github.com/nextcloud/files_archive/issues</bugs>
-	<repository>https://github.com/nextcloud/files_archive.git</repository>
+	<website>https://github.com/nextcloud/time_archive</website>
+	<bugs>https://github.com/nextcloud/time_archive/issues</bugs>
+	<repository>https://github.com/nextcloud/time_archive.git</repository>
 
 	<dependencies>
 		<nextcloud min-version="28" max-version="33" />
 	</dependencies>
 
-	<bootstrap>OCA\Files_Archive\AppInfo\Application</bootstrap>
+	<bootstrap>OCA\Time_Archive\AppInfo\Application</bootstrap>
 
 	<settings>
-		<admin>OCA\Files_Archive\Settings\Admin</admin>
+		<admin>OCA\Time_Archive\Settings\Admin</admin>
 	</settings>
 </info>

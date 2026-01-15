@@ -3,9 +3,9 @@
 # SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# Script to sign a files_archive release for Nextcloud App Store
+# Script to sign a time_archive release for Nextcloud App Store
 # Usage: ./sign-release.sh <version> [archive-file]
-# Example: ./sign-release.sh 1.0.0 files_archive-1.0.0.tar.gz
+# Example: ./sign-release.sh 1.0.0 time_archive-1.0.0.tar.gz
 
 set -e
 
@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-APP_NAME="files_archive"
+APP_NAME="time_archive"
 DOCKER_CONTAINER="nextcloud_nextcloud_app"
 
 # Certificate paths - can be overridden via environment variables
@@ -57,9 +57,9 @@ if [ $# -lt 1 ]; then
     echo ""
     echo "Examples:"
     echo "  $0 1.0.0                                    # Sign from GitHub release"
-    echo "  $0 1.0.0 files_archive-1.0.0.tar.gz        # Sign local file"
-    echo "  $0 files_archive-1.0.0.tar.gz              # Auto-detect version from filename"
-    echo "  $0 files_archive-1.0.0.zip                 # Works with .zip files too"
+    echo "  $0 1.0.0 time_archive-1.0.0.tar.gz        # Sign local file"
+    echo "  $0 time_archive-1.0.0.tar.gz              # Auto-detect version from filename"
+    echo "  $0 time_archive-1.0.0.zip                 # Works with .zip files too"
     exit 1
 fi
 
@@ -69,7 +69,7 @@ if [ -f "$1" ]; then
     ARCHIVE_FILE="$1"
     FILENAME=$(basename "$ARCHIVE_FILE")
     
-    # Try to extract version from filename (e.g., files_archive-1.0.0.tar.gz -> 1.0.0)
+    # Try to extract version from filename (e.g., time_archive-1.0.0.tar.gz -> 1.0.0)
     if [[ "$FILENAME" =~ ${APP_NAME}-([0-9]+\.[0-9]+\.[0-9]+) ]]; then
         VERSION="${BASH_REMATCH[1]}"
         print_info "Auto-detected version: $VERSION from filename"

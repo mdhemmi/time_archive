@@ -6,9 +6,9 @@ declare(strict_types=1);
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\Files_Archive\Notification;
+namespace OCA\Time_Archive\Notification;
 
-use OCA\Files_Archive\AppInfo\Application;
+use OCA\Time_Archive\AppInfo\Application;
 use OCP\Files\IRootFolder;
 use OCP\Files\Node;
 use OCP\IURLGenerator;
@@ -72,7 +72,7 @@ class Notifier implements INotifier {
 				$l->t('Your file will be moved to the .archive folder, which is hidden from mobile apps but accessible via the web interface.')
 			)
 			->setParsedMessage($l->t('Your file will be moved to the .archive folder, which is hidden from mobile apps but accessible via the web interface.'))
-			->setIcon($this->url->getAbsoluteURL($this->url->imagePath('files_archive', 'app-dark.svg')));
+			->setIcon($this->url->getAbsoluteURL($this->url->imagePath('time_archive', 'app-dark.svg')));
 
 		return $notification;
 	}

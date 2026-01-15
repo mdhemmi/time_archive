@@ -1,6 +1,6 @@
 # Release Process for Nextcloud App Store
 
-This document describes the step-by-step process for releasing the `files_archive` app to the Nextcloud App Store.
+This document describes the step-by-step process for releasing the `time_archive` app to the Nextcloud App Store.
 
 ## Quick Start: Automated Release
 
@@ -41,7 +41,7 @@ See the [Automated Release](#automated-release) section below for more details.
 2. Log in or create an account
 3. Navigate to "My apps" → "Register new app"
 4. Fill in:
-   - **App ID**: `files_archive` (must match `appinfo/info.xml`)
+   - **App ID**: `time_archive` (must match `appinfo/info.xml`)
    - **App Name**: Files Archive
    - **Description**: Brief description of the app
    - **Category**: Files
@@ -53,26 +53,26 @@ See the [Automated Release](#automated-release) section below for more details.
    ```bash
    mkdir -p ~/.nextcloud/certificates
    cd ~/.nextcloud/certificates
-   openssl genrsa -out files_archive.key 4096
+   openssl genrsa -out time_archive.key 4096
    ```
 
 2. **Generate a certificate signing request (CSR)**:
    ```bash
-   openssl req -new -key files_archive.key -out files_archive.csr
+   openssl req -new -key time_archive.key -out time_archive.csr
    ```
-   Fill in the prompts (Common Name should be your app ID: `files_archive`)
+   Fill in the prompts (Common Name should be your app ID: `time_archive`)
 
 3. **Upload CSR to App Store**:
    - Go to your app page on apps.nextcloud.com
    - Navigate to "Certificates" or "Signing"
-   - Upload `files_archive.csr`
-   - Download the certificate file (`files_archive.crt`)
+   - Upload `time_archive.csr`
+   - Download the certificate file (`time_archive.crt`)
 
 4. **Store certificate securely**:
    ```bash
    # Keep these files safe - you'll need them for every release
-   ~/.nextcloud/certificates/files_archive.key
-   ~/.nextcloud/certificates/files_archive.crt
+   ~/.nextcloud/certificates/time_archive.key
+   ~/.nextcloud/certificates/time_archive.crt
    ```
 
 ## Release Process (For Each Version)
@@ -106,7 +106,7 @@ See the [Automated Release](#automated-release) section below for more details.
 
 2. **Clean the workspace**:
    ```bash
-   cd /path/to/files_archive
+   cd /path/to/time_archive
    
    # Remove build artifacts (they'll be regenerated)
    rm -rf js/
@@ -132,10 +132,10 @@ See the [Automated Release](#automated-release) section below for more details.
    # Check that js/ directory exists with built files
    ls -la js/
    # Should see files like:
-   # - files_archive-main.js
-   # - files_archive-navigation.js
-   # - files_archive-archive.js
-   # - files_archive-archiveLink.js
+   # - time_archive-main.js
+   # - time_archive-navigation.js
+   # - time_archive-archive.js
+   # - time_archive-archiveLink.js
    ```
 
 ### Step 4: Create Release Archive
@@ -143,8 +143,8 @@ See the [Automated Release](#automated-release) section below for more details.
 1. **Copy app to a clean directory** (to avoid including unnecessary files):
    ```bash
    # Create temporary directory
-   mkdir -p /tmp/files_archive-release
-   cd /tmp/files_archive-release
+   mkdir -p /tmp/time_archive-release
+   cd /tmp/time_archive-release
    
    # Copy app files (exclude .git, node_modules, etc.)
    rsync -av \
@@ -161,13 +161,13 @@ See the [Automated Release](#automated-release) section below for more details.
      --exclude='composer.lock' \
      --exclude='*.md' \
      --exclude='*.sh' \
-     /path/to/files_archive/ ./files_archive/
+     /path/to/time_archive/ ./time_archive/
    ```
 
 2. **Or use Nextcloud's built-in packaging** (recommended):
    ```bash
    # On your Nextcloud server where the app is installed
-   cd /var/www/html/apps/files_archive
+   cd /var/www/html/apps/time_archive
    
    # Use Nextcloud's app:getpath to get the app directory
    # Then create archive manually or use the signing tool
@@ -187,41 +187,41 @@ You can sign the app either manually or using the provided script:
    ./sign-release.sh 1.0.0
    
    # Or specify the archive file
-   ./sign-release.sh 1.0.0 files_archive-1.0.0.tar.gz
+   ./sign-release.sh 1.0.0 time_archive-1.0.0.tar.gz
    ```
 
    The script will:
    - Copy the archive to your Docker container
    - Sign it using your certificates
-   - Copy the signed archive back as `files_archive-1.0.0-signed.tar.gz`
+   - Copy the signed archive back as `time_archive-1.0.0-signed.tar.gz`
    - Clean up temporary files
 
 3. **Prerequisites for the script**:
    - Docker container named `nextcloud_nextcloud_app` must be running
    - Certificates must be in `~/.nextcloud/certificates/`:
-     - `files_archive.key`
-     - `files_archive.crt`
+     - `time_archive.key`
+     - `time_archive.crt`
 
 #### Option B: Manual Signing
 
 1. **Sign the app using Nextcloud's `occ` command**:
    ```bash
    # On your Nextcloud server
-   php /var/www/html/occ app:sign files_archive \
-     --privateKey=~/.nextcloud/certificates/files_archive.key \
-     --certificate=~/.nextcloud/certificates/files_archive.crt \
+   php /var/www/html/occ app:sign time_archive \
+     --privateKey=~/.nextcloud/certificates/time_archive.key \
+     --certificate=~/.nextcloud/certificates/time_archive.crt \
      --path=/tmp
    ```
 
    This will create a signed tarball like:
    ```
-   /tmp/files_archive-1.0.0.tar.gz
+   /tmp/time_archive-1.0.0.tar.gz
    ```
 
 2. **Verify the signature** (optional):
    ```bash
-   tar -tzf /tmp/files_archive-1.0.0.tar.gz | grep signature.json
-   # Should show: files_archive/signature.json
+   tar -tzf /tmp/time_archive-1.0.0.tar.gz | grep signature.json
+   # Should show: time_archive/signature.json
    ```
 
 ### Step 6: Upload to App Store
@@ -231,7 +231,7 @@ You can sign the app either manually or using the provided script:
    - Log in with your account
 
 2. **Navigate to your app**:
-   - Go to "My apps" → "files_archive"
+   - Go to "My apps" → "time_archive"
 
 3. **Create new release**:
    - Click "New Release" or "Upload Release"
@@ -239,7 +239,7 @@ You can sign the app either manually or using the provided script:
      - **Version**: `1.0.0` (must match `info.xml`)
      - **Changelog**: Brief description of changes
      - **Supported Nextcloud versions**: Select based on your `info.xml` dependencies
-   - **Upload the signed tarball**: `/tmp/files_archive-1.0.0.tar.gz`
+   - **Upload the signed tarball**: `/tmp/time_archive-1.0.0.tar.gz`
 
 4. **Submit for review**:
    - Review all information
@@ -294,7 +294,7 @@ You can sign the app either manually or using the provided script:
 - Check `appinfo/info.xml` for required fields
 - Ensure all dependencies are correctly specified
 - Verify app follows Nextcloud coding standards
-- Run `php occ app:check-code files_archive` to check for issues
+- Run `php occ app:check-code time_archive` to check for issues
 
 ### "Certificate not found"
 
@@ -336,8 +336,8 @@ This repository includes GitHub Actions workflows that automate the release proc
 1. **Add Signing Secrets (Optional)**:
    - Go to your GitHub repository → Settings → Secrets and variables → Actions
    - Add the following secrets:
-     - `APP_SIGNING_CERTIFICATE`: Contents of `files_archive.crt`
-     - `APP_SIGNING_KEY`: Contents of `files_archive.key`
+     - `APP_SIGNING_CERTIFICATE`: Contents of `time_archive.crt`
+     - `APP_SIGNING_KEY`: Contents of `time_archive.key`
    - **Note**: Only add these if you trust GitHub with your signing keys. For maximum security, keep signing manual.
 
 2. **Create a Release**:

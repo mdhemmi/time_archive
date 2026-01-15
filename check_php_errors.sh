@@ -18,11 +18,11 @@ docker exec nextcloud_nextcloud_app tail -50 /var/www/html/data/nextcloud.log 2>
 echo ""
 echo "4. Testing PHP syntax of key files:"
 echo "   Checking APIController.php..."
-docker exec nextcloud_nextcloud_app php -l /var/www/html/apps/files_archive/lib/Controller/APIController.php 2>&1
+docker exec nextcloud_nextcloud_app php -l /var/www/html/apps/time_archive/lib/Controller/APIController.php 2>&1
 
 echo ""
 echo "   Checking Admin.php..."
-docker exec nextcloud_nextcloud_app php -l /var/www/html/apps/files_archive/lib/Settings/Admin.php 2>&1
+docker exec nextcloud_nextcloud_app php -l /var/www/html/apps/time_archive/lib/Settings/Admin.php 2>&1
 
 echo ""
 echo "5. To see real-time errors, run:"

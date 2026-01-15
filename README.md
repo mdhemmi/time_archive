@@ -30,12 +30,12 @@ An app for Nextcloud to automatically archive files based on file age. Archived 
 1. Clone or download the app:
 ```bash
 cd /path/to/nextcloud/apps
-git clone https://github.com/nextcloud/files_archive.git
+git clone https://github.com/nextcloud/time_archive.git
 ```
 
 2. Install PHP dependencies:
 ```bash
-cd files_archive
+cd time_archive
 composer install --no-dev
 ```
 
@@ -47,7 +47,7 @@ npm run build
 
 4. Enable the app:
    - Via web UI: Go to Apps → Find "File Archive" → Enable
-   - Via CLI: `php occ app:enable files_archive`
+   - Via CLI: `php occ app:enable time_archive`
 
 5. Run database migrations:
 ```bash
@@ -118,4 +118,4 @@ npm run watch
 ## License
 
 AGPL-3.0-or-later
-# files_archive
+# time_archive

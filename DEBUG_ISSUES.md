@@ -6,11 +6,11 @@
 1. Open browser DevTools (F12)
 2. Go to Console tab
 3. Look for errors starting with `[Files Archive]`
-4. Check Network tab for API calls to `/ocs/v2.php/apps/files_archive/api/v1/rules`
+4. Check Network tab for API calls to `/ocs/v2.php/apps/time_archive/api/v1/rules`
 
 ### Common Issues:
 - **403 Forbidden**: User is not an admin. Archive rules are admin-only.
-- **404 Not Found**: Route not registered. Run `php occ app:enable files_archive` and `php occ upgrade`
+- **404 Not Found**: Route not registered. Run `php occ app:enable time_archive` and `php occ upgrade`
 - **Empty response**: Check if rules exist in database: `SELECT * FROM oc_archive_rules;`
 
 ### Verify API Response Format:
@@ -42,8 +42,8 @@ docker exec nextcloud_nextcloud_app tail -100 /var/www/html/data/nextcloud.log |
 
 ### Verify Navigation Registration:
 1. Check if `NavigationManager` is being called in `Application.php`
-2. Check if icon file exists: `ls -la /var/www/html/apps/files_archive/img/app.svg`
-3. Check if route is registered: `php occ app:list | grep files_archive`
+2. Check if icon file exists: `ls -la /var/www/html/apps/time_archive/img/app.svg`
+3. Check if route is registered: `php occ app:list | grep time_archive`
 
 ### Note:
 `INavigationManager` might not be the right interface for top navigation bar. In Nextcloud, apps typically appear in top navigation automatically if they have a main route.

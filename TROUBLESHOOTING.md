@@ -7,10 +7,10 @@ If the app is not showing up in Nextcloud's app list, follow these steps:
 Ensure the app is in the correct location:
 ```bash
 # Your app should be at:
-/opt/stacks/nextcloud/apps/files_archive
+/opt/stacks/nextcloud/apps/time_archive
 
 # Verify it exists
-ls -la /opt/stacks/nextcloud/apps/files_archive
+ls -la /opt/stacks/nextcloud/apps/time_archive
 ```
 
 ## Step 2: Check File Permissions
@@ -22,11 +22,11 @@ The web server user must be able to read all files:
 ps aux | grep -E 'nginx|apache|httpd' | head -1
 
 # Set correct ownership (replace www-data with your web server user)
-sudo chown -R www-data:www-data /opt/stacks/nextcloud/apps/files_archive
+sudo chown -R www-data:www-data /opt/stacks/nextcloud/apps/time_archive
 
 # Set correct permissions
-sudo find /opt/stacks/nextcloud/apps/files_archive -type d -exec chmod 755 {} \;
-sudo find /opt/stacks/nextcloud/apps/files_archive -type f -exec chmod 644 {} \;
+sudo find /opt/stacks/nextcloud/apps/time_archive -type d -exec chmod 755 {} \;
+sudo find /opt/stacks/nextcloud/apps/time_archive -type f -exec chmod 644 {} \;
 ```
 
 ## Step 3: Validate appinfo/info.xml
@@ -34,7 +34,7 @@ sudo find /opt/stacks/nextcloud/apps/files_archive -type f -exec chmod 644 {} \;
 Check if the XML file is valid:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 xmllint --noout appinfo/info.xml
 ```
 
@@ -81,7 +81,7 @@ journalctl -u nextcloud -f  # if using systemd
 Check that all required files are present:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 
 # Required files
 ls -la appinfo/info.xml
@@ -102,14 +102,14 @@ Try enabling the app directly via command line:
 ```bash
 cd /opt/stacks/nextcloud
 
-# List all apps (should show files_archive if detected)
-sudo -u www-data php occ app:list | grep files_archive
+# List all apps (should show time_archive if detected)
+sudo -u www-data php occ app:list | grep time_archive
 
 # Enable the app
-sudo -u www-data php occ app:enable files_archive
+sudo -u www-data php occ app:enable time_archive
 
 # If that fails, check for errors
-sudo -u www-data php occ app:enable files_archive -v
+sudo -u www-data php occ app:enable time_archive -v
 ```
 
 ## Step 8: Check Nextcloud Version Compatibility
@@ -128,7 +128,7 @@ The app requires Nextcloud 28-33. If you're on a different version, you may need
 Ensure Composer dependencies are installed:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 ls -la vendor/
 ```
 
@@ -142,7 +142,7 @@ composer install --no-dev --optimize-autoloader
 Check PHP files for syntax errors:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
 ```
 
@@ -151,7 +151,7 @@ find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
 Ensure the app ID matches in all places:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 
 # Check info.xml
 grep '<id>' appinfo/info.xml
@@ -159,7 +159,7 @@ grep '<id>' appinfo/info.xml
 # Check Application.php
 grep 'APP_ID' appinfo/Application.php
 
-# Both should show: files_archive
+# Both should show: time_archive
 ```
 
 ## Step 12: Check Web Server Configuration
@@ -168,7 +168,7 @@ If using a reverse proxy or special web server config, ensure the apps directory
 
 ```bash
 # Test if web server can access the directory
-sudo -u www-data ls -la /opt/stacks/nextcloud/apps/files_archive
+sudo -u www-data ls -la /opt/stacks/nextcloud/apps/time_archive
 ```
 
 ## Common Issues and Solutions
@@ -202,7 +202,7 @@ If none of the above steps work:
 Run this to get a quick overview:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive && \
+cd /opt/stacks/nextcloud/apps/time_archive && \
 echo "=== File Permissions ===" && \
 ls -la appinfo/ && \
 echo -e "\n=== XML Validation ===" && \
@@ -215,5 +215,5 @@ echo -e "\n=== Required Files ===" && \
 [ -d js/ ] && echo "✓ js/ directory exists" || echo "✗ js/ directory missing" && \
 echo -e "\n=== Nextcloud Detection ===" && \
 cd /opt/stacks/nextcloud && \
-sudo -u www-data php occ app:list 2>&1 | grep -i files_archive || echo "App not detected by Nextcloud"
+sudo -u www-data php occ app:list 2>&1 | grep -i time_archive || echo "App not detected by Nextcloud"
 ```

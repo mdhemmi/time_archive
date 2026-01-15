@@ -17,7 +17,7 @@ import '@nextcloud/dialogs/style.css'
 __webpack_nonce__ = btoa(getRequestToken())
 
 // eslint-disable-next-line
-__webpack_public_path__ = generateFilePath('files_archive', '', 'js/')
+__webpack_public_path__ = generateFilePath('time_archive', '', 'js/')
 
 createApp(ArchiveView)
 	.mount('#archive-view')

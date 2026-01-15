@@ -36,11 +36,11 @@ function addArchiveLink() {
 			
 			const archiveLink = document.createElement('a')
 			archiveLink.className = 'files-archive-link'
-			archiveLink.href = generateUrl('/apps/files_archive/')
-			archiveLink.title = t('files_archive', 'View archived files')
+			archiveLink.href = generateUrl('/apps/time_archive/')
+			archiveLink.title = t('time_archive', 'View archived files')
 			archiveLink.innerHTML = `
 				<span class="icon-archive" style="margin-right: 4px;"></span>
-				${t('files_archive', 'Archive')}
+				${t('time_archive', 'Archive')}
 			`
 			archiveLink.style.cssText = `
 				display: inline-flex;
@@ -86,11 +86,11 @@ function addArchiveLink() {
 		if (sidebar && !sidebar.querySelector('.files-archive-link')) {
 			const archiveLink = document.createElement('a')
 			archiveLink.className = 'files-archive-link'
-			archiveLink.href = generateUrl('/apps/files_archive/')
-			archiveLink.title = t('files_archive', 'View archived files')
+			archiveLink.href = generateUrl('/apps/time_archive/')
+			archiveLink.title = t('time_archive', 'View archived files')
 			archiveLink.innerHTML = `
 				<span class="icon-archive" style="margin-right: 8px;"></span>
-				${t('files_archive', 'Archive')}
+				${t('time_archive', 'Archive')}
 			`
 			archiveLink.style.cssText = `
 				display: flex;
@@ -117,11 +117,11 @@ function addArchiveLink() {
 		if (!document.querySelector('.files-archive-floating-link')) {
 			const floatingLink = document.createElement('a')
 			floatingLink.className = 'files-archive-floating-link'
-			floatingLink.href = generateUrl('/apps/files_archive/')
-			floatingLink.title = t('files_archive', 'View archived files')
+			floatingLink.href = generateUrl('/apps/time_archive/')
+			floatingLink.title = t('time_archive', 'View archived files')
 			floatingLink.innerHTML = `
 				<span class="icon-archive"></span>
-				<span class="files-archive-floating-text">${t('files_archive', 'Archive')}</span>
+				<span class="files-archive-floating-text">${t('time_archive', 'Archive')}</span>
 			`
 			floatingLink.style.cssText = `
 				position: fixed;

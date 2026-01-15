@@ -17,7 +17,7 @@ docker exec nextcloud_nextcloud_app tail -200 /var/www/html/data/nextcloud.log |
 ## Step 2: Check if Icon File Exists
 
 ```bash
-docker exec nextcloud_nextcloud_app ls -la /var/www/html/apps/files_archive/img/app.svg
+docker exec nextcloud_nextcloud_app ls -la /var/www/html/apps/time_archive/img/app.svg
 ```
 
 The file should exist and not be empty (0 bytes).
@@ -26,7 +26,7 @@ The file should exist and not be empty (0 bytes).
 
 Try accessing the archive view directly:
 ```
-https://your-nextcloud.com/index.php/apps/files_archive/
+https://your-nextcloud.com/index.php/apps/time_archive/
 ```
 
 If this works, the route is correct.
@@ -36,7 +36,7 @@ If this works, the route is correct.
 1. Open browser DevTools (F12)
 2. Go to Console tab
 3. Look for any errors related to navigation
-4. Check if `files_archive-navigation.js` is loaded (Network tab)
+4. Check if `time_archive-navigation.js` is loaded (Network tab)
 
 ## Known Issue
 

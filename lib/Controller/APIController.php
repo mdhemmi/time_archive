@@ -6,11 +6,11 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-namespace OCA\Files_Archive\Controller;
+namespace OCA\Time_Archive\Controller;
 
-use OCA\Files_Archive\BackgroundJob\ArchiveJob;
-use OCA\Files_Archive\Constants;
-use OCA\Files_Archive\ResponseDefinitions;
+use OCA\Time_Archive\BackgroundJob\ArchiveJob;
+use OCA\Time_Archive\Constants;
+use OCA\Time_Archive\ResponseDefinitions;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
@@ -28,7 +28,7 @@ use OCP\IUserSession;
 use OCP\SystemTag\ISystemTagObjectMapper;
 
 /**
- * @psalm-import-type Files_ArchiveRule from ResponseDefinitions
+ * @psalm-import-type Time_ArchiveRule from ResponseDefinitions
  */
 class APIController extends OCSController {
 	public function __construct(
@@ -52,7 +52,7 @@ class APIController extends OCSController {
 	 * List archive rules
 	 * Admin only - normal users cannot view or modify archive rules
 	 *
-	 * @return DataResponse<Http::STATUS_OK, list<Files_ArchiveRule>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<Time_ArchiveRule>, array{}>
 	 *
 	 * 200: List archive rules
 	 */
@@ -133,7 +133,7 @@ class APIController extends OCSController {
 	 * @param positive-int $timeamount Amount of time units
 	 * @param 0|1 $timeafter Whether archive time is based on creation time (0) or modification time (1)
 	 * @psalm-param Constants::MODE_* $timeafter
-	 * @return DataResponse<Http::STATUS_BAD_REQUEST, array{error: 'tagid'|'timeunit'|'timeamount'|'timeafter'}, array{}>|DataResponse<Http::STATUS_CREATED, Files_ArchiveRule, array{}>
+	 * @return DataResponse<Http::STATUS_BAD_REQUEST, array{error: 'tagid'|'timeunit'|'timeamount'|'timeafter'}, array{}>|DataResponse<Http::STATUS_CREATED, Time_ArchiveRule, array{}>
 	 *
 	 * 201: Archive rule created
 	 * 400: At least one of the parameters was invalid
@@ -273,7 +273,7 @@ class APIController extends OCSController {
 				$archiveBefore = $this->calculateArchiveBeforeDate($rule['time_unit'], $rule['time_amount']);
 				
 				$this->logger->info('Manually triggered archive job for rule ' . $rule['id'] . ' (archive files older than ' . $archiveBefore->format('Y-m-d H:i:s') . ')');
-				error_log('Files Archive: Starting archive job for rule ' . $rule['id'] . ' - archive files older than ' . $archiveBefore->format('Y-m-d H:i:s'));
+				error_log('Time Archive: Starting archive job for rule ' . $rule['id'] . ' - archive files older than ' . $archiveBefore->format('Y-m-d H:i:s'));
 				
 				// Create a new ArchiveJob instance and run it immediately
 				$job = new ArchiveJob(
@@ -292,7 +292,7 @@ class APIController extends OCSController {
 				$rulesProcessed++;
 				
 				$this->logger->info('Archive job completed for rule ' . $rule['id']);
-				error_log('Files Archive: Archive job completed for rule ' . $rule['id']);
+				error_log('Time Archive: Archive job completed for rule ' . $rule['id']);
 			} catch (\Exception $e) {
 				$errorMsg = 'Failed to run archive job for rule ' . $rule['id'] . ': ' . $e->getMessage();
 				$errors[] = $errorMsg;

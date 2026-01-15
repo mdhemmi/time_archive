@@ -1,14 +1,14 @@
 # Fix: Missing JavaScript Files
 
 ## Problem
-The error `Could not find resource files_archive/js/files_archive-main.js to load` indicates that the JavaScript files haven't been built or are in the wrong location.
+The error `Could not find resource time_archive/js/time_archive-main.js to load` indicates that the JavaScript files haven't been built or are in the wrong location.
 
 ## Solution
 
 Run these commands to rebuild the frontend:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 
 # 1. Remove old build files (if any)
 rm -rf js/
@@ -20,10 +20,10 @@ npm run build
 ls -la js/
 
 # You should see files like:
-# - files_archive-main.js
-# - files_archive-main.js.map
-# - files_archive-navigation.js
-# - files_archive-archive.js
+# - time_archive-main.js
+# - time_archive-main.js.map
+# - time_archive-navigation.js
+# - time_archive-archive.js
 # etc.
 
 # 4. Set correct permissions (if needed)
@@ -38,7 +38,7 @@ docker exec -u www-data nextcloud_nextcloud_app php /var/www/html/occ maintenanc
 ## Alternative: Use the fix_ui.sh script
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 ./fix_ui.sh
 ```
 

@@ -3,15 +3,15 @@
   - SPDX-License-Identifier: AGPL-3.0-or-later
   -->
 <template>
-	<NcSettingsSection :name="t('files_archive', 'File Archive')"
+	<NcSettingsSection :name="t('time_archive', 'File Archive')"
 		:doc-url="docUrl"
-		:description="t('files_archive', 'Automatically archive files based on age. Archived files are moved to the .archive folder, which is hidden from mobile apps but accessible via the web interface.')">
+		:description="t('time_archive', 'Automatically archive files based on age. Archived files are moved to the .archive folder, which is hidden from mobile apps but accessible via the web interface.')">
 		
 		<!-- Info about viewing archived files -->
 		<div class="archive-info">
 			<div class="archive-info__card">
-				<strong>{{ t('files_archive', 'Accessing archived files') }}</strong>
-				<p>{{ t('files_archive', 'The .archive folder is hidden from mobile apps but accessible via the web interface. An "Archive" link is available in the Files app sidebar navigation for easy access.') }}</p>
+				<strong>{{ t('time_archive', 'Accessing archived files') }}</strong>
+				<p>{{ t('time_archive', 'The .archive folder is hidden from mobile apps but accessible via the web interface. An "Archive" link is available in the Files app sidebar navigation for easy access.') }}</p>
 			</div>
 		</div>
 
@@ -20,22 +20,22 @@
 			<NcButton variant="secondary"
 				type="button"
 				:disabled="loading || runningArchive"
-				:aria-label="t('files_archive', 'Run archive job now')"
+				:aria-label="t('time_archive', 'Run archive job now')"
 				@click="onClickRunArchive">
 				<template #icon>
 					<Play :size="20" />
 				</template>
-				{{ runningArchive ? t('files_archive', 'Running...') : t('files_archive', 'Run archive now') }}
+				{{ runningArchive ? t('time_archive', 'Running...') : t('time_archive', 'Run archive now') }}
 			</NcButton>
 			<p class="archive-actions__hint">
-				{{ t('files_archive', 'Manually trigger the archive job to process files immediately instead of waiting for the scheduled run.') }}
+				{{ t('time_archive', 'Manually trigger the archive job to process files immediately instead of waiting for the scheduled run.') }}
 			</p>
 		</div>
 
 		<!-- Existing Rules -->
 		<div v-if="archiveRules.length > 0" class="archive-rules-list">
 			<h3 class="archive-section-title">
-				{{ t('files_archive', 'Active archive rules') }}
+				{{ t('time_archive', 'Active archive rules') }}
 			</h3>
 			<div class="archive-rules-grid">
 				<ArchiveRule v-for="rule in archiveRules"
@@ -47,7 +47,7 @@
 		<!-- Create New Rule Form -->
 		<div class="archive-form-container">
 			<h3 class="archive-section-title">
-				{{ archiveRules.length > 0 ? t('files_archive', 'Create new archive rule') : t('files_archive', 'Create your first archive rule') }}
+				{{ archiveRules.length > 0 ? t('time_archive', 'Create new archive rule') : t('time_archive', 'Create your first archive rule') }}
 			</h3>
 			
 			<div class="archive-form">
@@ -55,15 +55,15 @@
 				<div class="archive-form__field-group">
 					<div class="archive-form__field archive-form__field--time">
 						<label class="archive-form__label">
-							{{ t('files_archive', 'Archive after') }}
+							{{ t('time_archive', 'Archive after') }}
 						</label>
 						<div class="archive-form__time-inputs">
 							<NcTextField v-model="newAmount"
 								:disabled="loading"
 								type="number"
 								min="1"
-								:label="t('files_archive', 'Amount')"
-								:aria-label="t('files_archive', 'Number of time units')"
+								:label="t('time_archive', 'Amount')"
+								:aria-label="t('time_archive', 'Number of time units')"
 								class="archive-form__time-amount" />
 							<NcSelect v-model="newUnit"
 								:disabled="loading"
@@ -75,13 +75,13 @@
 								class="archive-form__time-unit" />
 						</div>
 						<p class="archive-form__hint">
-							{{ t('files_archive', 'How long to keep files before archiving them.') }}
+							{{ t('time_archive', 'How long to keep files before archiving them.') }}
 						</p>
 					</div>
 
 					<div class="archive-form__field">
 						<label class="archive-form__label">
-							{{ t('files_archive', 'Calculate from') }}
+							{{ t('time_archive', 'Calculate from') }}
 						</label>
 						<NcSelect v-model="newAfter"
 							:disabled="loading"
@@ -92,7 +92,7 @@
 							label="label"
 							class="archive-form__input" />
 						<p class="archive-form__hint">
-							{{ t('files_archive', 'The date to use as the starting point for the archive period.') }}
+							{{ t('time_archive', 'The date to use as the starting point for the archive period.') }}
 						</p>
 					</div>
 				</div>
@@ -101,7 +101,7 @@
 				<div class="archive-form__info-box">
 					<Archive :size="20" class="archive-form__info-icon" />
 					<p class="archive-form__info-text">
-						{{ t('files_archive', 'All files matching the age criteria will be moved to the .archive folder for each user. This folder is hidden from mobile apps to prevent re-uploading. You can access archived files through the web interface by enabling "Show hidden files" in Files app settings.') }}
+						{{ t('time_archive', 'All files matching the age criteria will be moved to the .archive folder for each user. This folder is hidden from mobile apps to prevent re-uploading. You can access archived files through the web interface by enabling "Show hidden files" in Files app settings.') }}
 					</p>
 				</div>
 
@@ -115,7 +115,7 @@
 						<template #icon>
 							<Plus :size="20" />
 						</template>
-						{{ t('files_archive', 'Create archive rule') }}
+						{{ t('time_archive', 'Create archive rule') }}
 					</NcButton>
 				</div>
 			</div>
@@ -155,23 +155,23 @@ export default {
 
 		data() {
 		const unitOptions = [
-			{ id: 0, label: t('files_archive', 'Days') },
-			{ id: 1, label: t('files_archive', 'Weeks') },
-			{ id: 2, label: t('files_archive', 'Months') },
-			{ id: 3, label: t('files_archive', 'Years') },
-			{ id: 4, label: t('files_archive', 'Minutes') },
-			{ id: 5, label: t('files_archive', 'Hours') },
+			{ id: 0, label: t('time_archive', 'Days') },
+			{ id: 1, label: t('time_archive', 'Weeks') },
+			{ id: 2, label: t('time_archive', 'Months') },
+			{ id: 3, label: t('time_archive', 'Years') },
+			{ id: 4, label: t('time_archive', 'Minutes') },
+			{ id: 5, label: t('time_archive', 'Hours') },
 		]
 		
 		const afterOptions = [
-			{ id: 0, label: t('files_archive', 'Creation date') },
-			{ id: 1, label: t('files_archive', 'Last modification date') },
+			{ id: 0, label: t('time_archive', 'Creation date') },
+			{ id: 1, label: t('time_archive', 'Last modification date') },
 		]
 
 		return {
 			loading: true,
 			runningArchive: false,
-			docUrl: loadState('files_archive', 'doc-url'),
+			docUrl: loadState('time_archive', 'doc-url'),
 
 			unitOptions,
 			newUnit: unitOptions[3], // Default to years
@@ -189,7 +189,7 @@ export default {
 		},
 
 		createLabel() {
-			return t('files_archive', 'Create new archive rule')
+			return t('time_archive', 'Create new archive rule')
 		},
 	},
 
@@ -202,7 +202,7 @@ export default {
 		} catch (e) {
 			console.error('[Files Archive] Error loading archive rules:', e)
 			console.error('[Files Archive] Error details:', e.response || e.message)
-			const errorMsg = e.response?.data?.message || e.message || t('files_archive', 'An error occurred while loading the existing archive rules')
+			const errorMsg = e.response?.data?.message || e.message || t('time_archive', 'An error occurred while loading the existing archive rules')
 			showError(errorMsg)
 			this.loading = false
 		}
@@ -217,17 +217,17 @@ export default {
 			const newAmount = parseInt(this.newAmount, 10)
 
 			if (newUnit < 0 || newUnit > 5) {
-				showError(t('files_archive', 'Invalid time unit'))
+				showError(t('time_archive', 'Invalid time unit'))
 				return
 			}
 
 			if (newAfter < 0 || newAfter > 1) {
-				showError(t('files_archive', 'Invalid date option'))
+				showError(t('time_archive', 'Invalid date option'))
 				return
 			}
 
 			if (isNaN(newAmount) || newAmount < 1) {
-				showError(t('files_archive', 'Please enter a valid archive period (at least 1)'))
+				showError(t('time_archive', 'Please enter a valid archive period (at least 1)'))
 				return
 			}
 
@@ -241,10 +241,10 @@ export default {
 
 				await this.$store.dispatch('createNewRule', ruleData)
 
-				showSuccess(t('files_archive', 'Archive rule has been created'))
+				showSuccess(t('time_archive', 'Archive rule has been created'))
 				this.resetForm()
 			} catch (e) {
-				showError(t('files_archive', 'Failed to create archive rule'))
+				showError(t('time_archive', 'Failed to create archive rule'))
 				console.error(e)
 			}
 		},
@@ -265,7 +265,7 @@ export default {
 				const response = await runArchiveJob()
 				const data = response.data?.ocs?.data || response.data || {}
 				const rulesProcessed = data.rulesProcessed || 0
-				const message = data.message || t('files_archive', 'Archive job completed')
+				const message = data.message || t('time_archive', 'Archive job completed')
 				const hint = data.hint || ''
 				
 				if (rulesProcessed > 0) {
@@ -274,7 +274,7 @@ export default {
 					showSuccess(message + (hint ? ' ' + hint : ''))
 				}
 			} catch (e) {
-				showError(t('files_archive', 'Failed to run archive job: {error}', { error: e.message || 'Unknown error' }))
+				showError(t('time_archive', 'Failed to run archive job: {error}', { error: e.message || 'Unknown error' }))
 				console.error('Archive job error:', e)
 			} finally {
 				this.runningArchive = false

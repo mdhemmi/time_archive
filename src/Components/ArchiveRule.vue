@@ -7,7 +7,7 @@
 		<div class="archive-rule-card__header">
 			<div class="archive-rule-card__title">
 				<ClockOutline :size="20" class="archive-rule-card__title-icon" />
-				<span class="archive-rule-card__title-name">{{ t('files_archive', 'Time-based archive rule') }}</span>
+				<span class="archive-rule-card__title-name">{{ t('time_archive', 'Time-based archive rule') }}</span>
 			</div>
 			<NcButton variant="tertiary"
 				:aria-label="deleteLabel"
@@ -22,7 +22,7 @@
 			<div class="archive-rule-card__detail">
 				<ClockOutline :size="18" class="archive-rule-card__detail-icon" />
 				<div class="archive-rule-card__detail-content">
-					<span class="archive-rule-card__detail-label">{{ t('files_archive', 'Archive after') }}</span>
+					<span class="archive-rule-card__detail-label">{{ t('time_archive', 'Archive after') }}</span>
 					<span class="archive-rule-card__detail-value">{{ getAmountAndUnit }}</span>
 				</div>
 			</div>
@@ -30,7 +30,7 @@
 			<div class="archive-rule-card__detail">
 				<Calendar :size="18" class="archive-rule-card__detail-icon" />
 				<div class="archive-rule-card__detail-content">
-					<span class="archive-rule-card__detail-label">{{ t('files_archive', 'Calculate from') }}</span>
+					<span class="archive-rule-card__detail-label">{{ t('time_archive', 'Calculate from') }}</span>
 					<span class="archive-rule-card__detail-value">{{ getAfter }}</span>
 				</div>
 			</div>
@@ -38,9 +38,9 @@
 			<div class="archive-rule-card__detail">
 				<Archive :size="18" class="archive-rule-card__detail-icon" />
 				<div class="archive-rule-card__detail-content">
-					<span class="archive-rule-card__detail-label">{{ t('files_archive', 'Destination') }}</span>
+					<span class="archive-rule-card__detail-label">{{ t('time_archive', 'Destination') }}</span>
 					<span class="archive-rule-card__detail-value archive-rule-card__destination">
-						{{ t('files_archive', '.archive folder') }}
+						{{ t('time_archive', '.archive folder') }}
 					</span>
 				</div>
 			</div>
@@ -101,33 +101,33 @@ export default {
 		getAmountAndUnit() {
 			switch (this.timeunit) {
 			case 0:
-				return n('files_archive', '%n day', '%n days', this.timeamount)
+				return n('time_archive', '%n day', '%n days', this.timeamount)
 			case 1:
-				return n('files_archive', '%n week', '%n weeks', this.timeamount)
+				return n('time_archive', '%n week', '%n weeks', this.timeamount)
 			case 2:
-				return n('files_archive', '%n month', '%n months', this.timeamount)
+				return n('time_archive', '%n month', '%n months', this.timeamount)
 			case 3:
-				return n('files_archive', '%n year', '%n years', this.timeamount)
+				return n('time_archive', '%n year', '%n years', this.timeamount)
 			case 4:
-				return n('files_archive', '%n minute', '%n minutes', this.timeamount)
+				return n('time_archive', '%n minute', '%n minutes', this.timeamount)
 			case 5:
-				return n('files_archive', '%n hour', '%n hours', this.timeamount)
+				return n('time_archive', '%n hour', '%n hours', this.timeamount)
 			default:
-				return n('files_archive', '%n day', '%n days', this.timeamount)
+				return n('time_archive', '%n day', '%n days', this.timeamount)
 			}
 		},
 
 		getAfter() {
 			switch (this.timeafter) {
 			case 0:
-				return t('files_archive', 'Creation date')
+				return t('time_archive', 'Creation date')
 			default:
-				return t('files_archive', 'Last modification date')
+				return t('time_archive', 'Last modification date')
 			}
 		},
 
 		deleteLabel() {
-			return t('files_archive', 'Delete archive rule')
+			return t('time_archive', 'Delete archive rule')
 		},
 	},
 
@@ -135,7 +135,7 @@ export default {
 		t,
 		async onClickDelete() {
 			await this.$store.dispatch('deleteArchiveRule', this.id)
-			showSuccess(t('files_archive', 'Archive rule has been deleted'))
+			showSuccess(t('time_archive', 'Archive rule has been deleted'))
 		},
 	},
 }

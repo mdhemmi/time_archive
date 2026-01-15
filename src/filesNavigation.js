@@ -68,15 +68,15 @@ function initFilesNavigation() {
 			{
 				id: 'archive',
 				appName: 'files',
-				name: t('files_archive', 'Archive'),
+				name: t('time_archive', 'Archive'),
 				icon: 'icon-archive',
 				order: 10,
 				href: archiveUrl,
 			},
 			// Format 2: Alternative format
 			{
-				id: 'files_archive',
-				name: t('files_archive', 'Archive'),
+				id: 'time_archive',
+				name: t('time_archive', 'Archive'),
 				icon: 'icon-archive',
 				order: 10,
 				href: archiveUrl,
@@ -84,7 +84,7 @@ function initFilesNavigation() {
 			// Format 3: Minimal format
 			{
 				id: 'archive',
-				name: t('files_archive', 'Archive'),
+				name: t('time_archive', 'Archive'),
 				href: archiveUrl,
 			},
 		]

@@ -7,10 +7,10 @@ declare(strict_types=1);
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\Files_Archive;
+namespace OCA\Time_Archive;
 
 /**
- * @psalm-type Files_ArchiveRule = array{
+ * @psalm-type Time_ArchiveRule = array{
  *     id: positive-int,
  *     tagid: positive-int,
  *     // 0 days, 1 weeks, 2 months, 3 years

@@ -35,7 +35,7 @@ export const fetchTags = async (): Promise<TagWithId[]> => {
 		}) as ResponseDataDetailed<Required<FileStat>[]>
 		return parseTags(tags)
 	} catch (error) {
-		logger.error(t('files_archive', 'Failed to load tags'), { error })
-		throw new Error(t('files_archive', 'Failed to load tags'))
+		logger.error(t('time_archive', 'Failed to load tags'), { error })
+		throw new Error(t('time_archive', 'Failed to load tags'))
 	}
 }

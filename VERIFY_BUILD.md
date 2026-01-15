@@ -7,13 +7,13 @@ If the UI still shows the tag section after rebuilding, follow these steps:
 Check if the `js/` directory exists and has recent files:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 ls -lah js/
 ```
 
 You should see files like:
-- `files_archive-main.js`
-- `files_archive-vendors-*.js`
+- `time_archive-main.js`
+- `time_archive-vendors-*.js`
 
 Check the modification time - they should be recent (after your build).
 
@@ -22,7 +22,7 @@ Check the modification time - they should be recent (after your build).
 Delete old build files and rebuild:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 
 # Remove old build files
 rm -rf js/
@@ -60,7 +60,7 @@ docker exec -u www-data nextcloud_nextcloud_app php /var/www/html/occ maintenanc
 Check that the source file doesn't have tag references:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 grep -i "NcSelectTags\|Files tagged with" src/AdminSettings.vue
 ```
 
@@ -71,7 +71,7 @@ This should return **nothing**. If it returns results, the source file wasn't up
 Make sure you're editing the correct file:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 find . -name "AdminSettings.vue" -type f
 ```
 
@@ -82,8 +82,8 @@ There should only be one file: `src/AdminSettings.vue`
 Check the built JavaScript file:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
-grep -i "tag\|NcSelectTags" js/files_archive-main.js | head -5
+cd /opt/stacks/nextcloud/apps/time_archive
+grep -i "tag\|NcSelectTags" js/time_archive-main.js | head -5
 ```
 
 If you see tag-related code, the build didn't pick up the changes.
@@ -93,7 +93,7 @@ If you see tag-related code, the build didn't pick up the changes.
 Ensure web server can read the files:
 
 ```bash
-cd /opt/stacks/nextcloud/apps/files_archive
+cd /opt/stacks/nextcloud/apps/time_archive
 sudo chown -R www-data:www-data js/
 sudo chmod -R 755 js/
 ```
@@ -103,7 +103,7 @@ sudo chmod -R 755 js/
 Look for JavaScript errors:
 
 ```bash
-tail -f /opt/stacks/nextcloud/data/nextcloud.log | grep -i "files_archive\|error\|javascript"
+tail -f /opt/stacks/nextcloud/data/nextcloud.log | grep -i "time_archive\|error\|javascript"
 ```
 
 ## Step 10: Manual Verification
@@ -134,7 +134,7 @@ echo "<!-- TEST_NO_TAGS -->" >> src/AdminSettings.vue
 npm run build
 
 # Check if it's in the built file
-grep "TEST_NO_TAGS" js/files_archive-main.js
+grep "TEST_NO_TAGS" js/time_archive-main.js
 ```
 
 If the test string appears in the built file, the build is working. If the UI still shows tags, it's a caching issue.
