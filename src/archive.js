@@ -12,6 +12,7 @@ import ArchiveView from './ArchiveView.vue'
 
 // Styles
 import '@nextcloud/dialogs/style.css'
+import './archive.css'
 
 // eslint-disable-next-line
 __webpack_nonce__ = btoa(getRequestToken())

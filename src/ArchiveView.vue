@@ -177,9 +177,11 @@ export default {
 .archive-view {
 	min-height: 100vh;
 	width: 100%;
+	max-width: 100%;
 	background: var(--color-main-background);
 	padding: 0;
 	margin: 0;
+	box-sizing: border-box;
 }
 
 .archive-view__header {
@@ -240,14 +242,17 @@ export default {
 	width: 100%;
 	max-width: 100%;
 	box-sizing: border-box;
+	background: var(--color-main-background);
 }
 
 .archive-view__tree {
 	width: 100%;
+	max-width: 100%;
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large);
 	padding: 8px;
+	box-sizing: border-box;
 }
 
 .archive-view__stats {

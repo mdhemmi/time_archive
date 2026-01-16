@@ -1,0 +1,27 @@
+/**
+ * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+/* Force full width for Archive app page - override Nextcloud's default container constraints */
+body[data-app="time_archive"] #app-content,
+body[data-app="time_archive"] #app-content .app-content,
+body[data-app="time_archive"] #app-content .app-content-wrapper,
+body[data-app="time_archive"] #app-content .app-content-main,
+body[data-app="time_archive"] #content,
+body[data-app="time_archive"] #content .app-content,
+body[data-app="time_archive"] #content .app-content-wrapper {
+	max-width: 100% !important;
+	width: 100% !important;
+}
+
+body[data-app="time_archive"] #app-content .app-content-main {
+	padding: 0 !important;
+	margin: 0 !important;
+}
+
+/* Ensure the archive view container always uses full width */
+#archive-view {
+	width: 100% !important;
+	max-width: 100% !important;
+}
