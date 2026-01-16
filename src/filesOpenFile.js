@@ -256,39 +256,100 @@ function autoOpenFile() {
 				
 				// Wait a bit for scroll, then try to open
 				setTimeout(() => {
+					// Try to find a clickable element within the row (link, button, or file name element)
+					const clickableElement = fileElement.querySelector('a, button, .file-name, .name, [role="button"], .files-list__row-name') || fileElement
+					
+					console.log('[Time Archive] Clickable element found:', clickableElement)
+					console.log('[Time Archive] Clickable element tag:', clickableElement.tagName)
+					console.log('[Time Archive] Clickable element classes:', Array.from(clickableElement.classList))
+					
+					// Try multiple methods to open the file
+					let opened = false
+					
+					// Method 1: Try double-click on the row (Files app might listen to row clicks)
 					try {
-						// Try double-click first (most reliable for opening files)
 						const dblClickEvent = new MouseEvent('dblclick', {
 							bubbles: true,
 							cancelable: true,
 							view: window,
-							detail: 2
+							detail: 2,
+							button: 0,
+							buttons: 0,
+							clientX: fileElement.getBoundingClientRect().left + fileElement.getBoundingClientRect().width / 2,
+							clientY: fileElement.getBoundingClientRect().top + fileElement.getBoundingClientRect().height / 2
 						})
 						fileElement.dispatchEvent(dblClickEvent)
-						console.log('[Time Archive] Dispatched double-click event on file element')
+						console.log('[Time Archive] Dispatched double-click on row with coordinates')
+						opened = true
 					} catch (e) {
-						console.warn('[Time Archive] Failed to dispatch double-click:', e)
+						console.warn('[Time Archive] Failed to dispatch double-click on row:', e)
+					}
+					
+					// Method 2: Try double-click on clickable element
+					if (!opened && clickableElement !== fileElement) {
 						try {
-							// Try single click
+							const clickableDblClick = new MouseEvent('dblclick', {
+								bubbles: true,
+								cancelable: true,
+								view: window,
+								detail: 2,
+								button: 0,
+								buttons: 0
+							})
+							clickableElement.dispatchEvent(clickableDblClick)
+							console.log('[Time Archive] Dispatched double-click on clickable element')
+							opened = true
+						} catch (e) {
+							console.warn('[Time Archive] Failed to dispatch double-click on clickable:', e)
+						}
+					}
+					
+					// Method 3: Try single click on row
+					if (!opened) {
+						try {
 							const clickEvent = new MouseEvent('click', {
 								bubbles: true,
 								cancelable: true,
-								view: window
+								view: window,
+								button: 0,
+								buttons: 0
 							})
 							fileElement.dispatchEvent(clickEvent)
-							console.log('[Time Archive] Dispatched click event on file element')
-						} catch (e2) {
-							console.warn('[Time Archive] Failed to dispatch click:', e2)
-							try {
-								// Last resort: direct click method
-								fileElement.click()
-								console.log('[Time Archive] Called click() on file element')
-							} catch (e3) {
-								console.warn('[Time Archive] All DOM click methods failed:', e3)
-							}
+							console.log('[Time Archive] Dispatched click on row')
+							opened = true
+						} catch (e) {
+							console.warn('[Time Archive] Failed to dispatch click on row:', e)
 						}
 					}
-				}, 300)
+					
+					// Method 4: Direct click() method
+					if (!opened) {
+						try {
+							if (clickableElement.click && typeof clickableElement.click === 'function') {
+								clickableElement.click()
+								console.log('[Time Archive] Called click() on clickable element')
+								opened = true
+							}
+						} catch (e) {
+							console.warn('[Time Archive] click() method failed:', e)
+						}
+					}
+					
+					// Method 5: If it's a link, navigate to it
+					if (!opened && clickableElement.tagName === 'A' && clickableElement.href) {
+						try {
+							console.log('[Time Archive] Clickable element is a link, navigating to:', clickableElement.href)
+							window.location.href = clickableElement.href
+							opened = true
+						} catch (e) {
+							console.warn('[Time Archive] Failed to navigate to link:', e)
+						}
+					}
+					
+					if (!opened) {
+						console.warn('[Time Archive] All click methods failed - file may need manual opening')
+					}
+				}, 500) // Increased delay to 500ms
 				return
 			} catch (e) {
 				console.warn('[Time Archive] Error opening file via DOM:', e)
