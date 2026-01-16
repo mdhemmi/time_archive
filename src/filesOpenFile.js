@@ -61,12 +61,20 @@ function autoOpenFile() {
 		const allTableRows = document.querySelectorAll('tbody tr, table tr, .files-list tr')
 		console.log('[Time Archive] Found', allTableRows.length, 'total table rows in DOM')
 		
-		// Filter out headers and non-file rows
+		// Filter out headers and non-file rows - be more aggressive
 		const fileRows = Array.from(allTableRows).filter(row => {
-			// Skip header rows
+			// Skip header rows (check class, role, or if it's in thead)
 			if (row.classList.contains('files-list_row-head') || 
 			    row.classList.contains('header') || 
-			    row.classList.contains('notification')) {
+			    row.classList.contains('notification') ||
+			    row.getAttribute('role') === 'columnheader' ||
+			    row.closest('thead') !== null) {
+				return false
+			}
+			// Skip if it's clearly not a file row (empty, loading, etc.)
+			if (row.classList.contains('empty') || 
+			    row.classList.contains('loading') ||
+			    row.textContent.trim() === '') {
 				return false
 			}
 			// Include all other rows (they might be file rows)
@@ -75,14 +83,23 @@ function autoOpenFile() {
 		
 		console.log('[Time Archive] Found', fileRows.length, 'potential file rows (after filtering headers)')
 		
-		// Log structure of first few file rows to understand the DOM
+		// Log structure of first few ACTUAL file rows (not headers)
 		if (fileRows.length > 0) {
-			const firstFileRow = fileRows[0]
-			console.log('[Time Archive] Sample file row:', firstFileRow)
-			console.log('[Time Archive] Sample file row classes:', Array.from(firstFileRow.classList))
-			console.log('[Time Archive] Sample file row attributes:', Array.from(firstFileRow.attributes).map(a => `${a.name}="${a.value}"`))
-			if (firstFileRow.dataset) {
-				console.log('[Time Archive] Sample file row dataset:', Object.keys(firstFileRow.dataset).map(k => `${k}=${firstFileRow.dataset[k]}`))
+			// Find the first row that's NOT a header
+			const firstFileRow = fileRows.find(row => !row.classList.contains('files-list_row-head'))
+			if (firstFileRow) {
+				console.log('[Time Archive] Sample file row:', firstFileRow)
+				console.log('[Time Archive] Sample file row classes:', Array.from(firstFileRow.classList))
+				console.log('[Time Archive] Sample file row attributes:', Array.from(firstFileRow.attributes).map(a => `${a.name}="${a.value}"`))
+				if (firstFileRow.dataset) {
+					console.log('[Time Archive] Sample file row dataset:', Object.keys(firstFileRow.dataset).map(k => `${k}=${firstFileRow.dataset[k]}`))
+				}
+				// Check if there are any child elements with file info
+				const fileLink = firstFileRow.querySelector('a[href*="fileid"], a[data-file], .file-name, [data-fileid]')
+				if (fileLink) {
+					console.log('[Time Archive] Found file link in row:', fileLink)
+					console.log('[Time Archive] File link attributes:', Array.from(fileLink.attributes).map(a => `${a.name}="${a.value}"`))
+				}
 			}
 		}
 		
@@ -110,12 +127,14 @@ function autoOpenFile() {
 			}
 		}
 		
-		// Try finding by file ID in all rows (check all attributes and even text content)
+		// Try finding by file ID in all rows (check row itself and child elements)
 		for (const row of fileRows) {
 			// Skip headers
-			if (row.classList.contains('files-list_row-head') || row.classList.contains('header')) continue
+			if (row.classList.contains('files-list_row-head') || 
+			    row.classList.contains('header') ||
+			    row.closest('thead') !== null) continue
 			
-			// Check all possible ID attributes
+			// Check row's own attributes
 			const rowId = row.getAttribute('data-fileid') || 
 			             row.getAttribute('data-file-id') || 
 			             row.getAttribute('data-file') ||
@@ -127,12 +146,32 @@ function autoOpenFile() {
 			if (rowId) {
 				const rowIdNum = parseInt(rowId)
 				if (rowIdNum === fileInfo.id || String(rowId) === String(fileInfo.id)) {
-					console.log('[Time Archive] Found file element by ID attribute. Row ID:', rowId, 'Target ID:', fileInfo.id, 'Row:', row)
+					console.log('[Time Archive] Found file element by row ID attribute. Row ID:', rowId, 'Target ID:', fileInfo.id, 'Row:', row)
 					return row
 				}
 			}
 			
-			// Also check if the file ID appears anywhere in the row (in case it's in a nested element)
+			// Check child elements for file ID (links, buttons, etc.)
+			const childElements = row.querySelectorAll('a, button, [data-fileid], [data-file-id], [data-file], [data-id]')
+			for (const child of childElements) {
+				const childId = child.getAttribute('data-fileid') || 
+				               child.getAttribute('data-file-id') || 
+				               child.getAttribute('data-file') ||
+				               child.getAttribute('data-id') ||
+				               child.getAttribute('href')?.match(/fileid=(\d+)/)?.[1] ||
+				               (child.dataset && (child.dataset.fileid || child.dataset.fileId || child.dataset.file || child.dataset.id))
+				
+				if (childId) {
+					const childIdNum = parseInt(childId)
+					if (childIdNum === fileInfo.id || String(childId) === String(fileInfo.id)) {
+						console.log('[Time Archive] Found file element by child element ID. Child ID:', childId, 'Target ID:', fileInfo.id, 'Child:', child, 'Row:', row)
+						// Return the row (not the child) so we can click the whole row
+						return row
+					}
+				}
+			}
+			
+			// Also check if the file ID appears anywhere in the row text (last resort)
 			const rowText = row.textContent || row.innerText || ''
 			if (rowText.includes(String(fileInfo.id))) {
 				console.log('[Time Archive] Found file element by ID in text content. Row:', row)
