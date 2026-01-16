@@ -257,9 +257,6 @@ jobs:
             ```
             
             Then upload the signed tarball to https://apps.nextcloud.com
-          draft: false
-          prerelease: false
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: false
