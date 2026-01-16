@@ -34,36 +34,14 @@
 				({{ formatTotalSize() }})
 			</div>
 
-			<table class="archive-view__table">
-				<thead>
-					<tr>
-						<th>{{ t('time_archive', 'Name') }}</th>
-						<th>{{ t('time_archive', 'Size') }}</th>
-						<th>{{ t('time_archive', 'Modified') }}</th>
-						<th>{{ t('time_archive', 'Actions') }}</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="file in files" :key="file.id">
-						<td class="archive-view__file-name">
-							{{ file.path }}
-						</td>
-						<td>{{ formatFileSize(file.size) }}</td>
-						<td>{{ formatDate(file.mtime) }}</td>
-						<td>
-							<NcButton
-								type="tertiary"
-								:aria-label="t('time_archive', 'Open {file}', { file: file.name })"
-								@click="openFile(file)">
-								<template #icon>
-									<Download :size="16" />
-								</template>
-								{{ t('time_archive', 'Open') }}
-							</NcButton>
-						</td>
-					</tr>
-				</tbody>
-			</table>
+			<div class="archive-view__tree">
+				<ArchiveTreeNode
+					v-for="node in folderTree"
+					:key="node.path"
+					:node="node"
+					@open-file="openFile"
+				/>
+			</div>
 		</div>
 	</div>
 </template>
@@ -73,7 +51,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { showError } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import Archive from 'vue-material-design-icons/Archive.vue'
-import Download from 'vue-material-design-icons/Download.vue'
+import ArchiveTreeNode from './Components/ArchiveTreeNode.vue'
 import { getArchivedFiles } from './services/archiveService.js'
 
 export default {
@@ -81,7 +59,7 @@ export default {
 	components: {
 		NcButton,
 		Archive,
-		Download,
+		ArchiveTreeNode,
 	},
 	data() {
 		return {
@@ -89,6 +67,68 @@ export default {
 			loading: true,
 			error: null,
 		}
+	},
+	computed: {
+		folderTree() {
+			// Build folder tree structure from file paths
+			const tree = {}
+			
+			this.files.forEach(file => {
+				const pathParts = file.path.split('/').filter(p => p)
+				if (pathParts.length === 0) return
+				
+				let current = tree
+				
+				// Build folder structure
+				for (let i = 0; i < pathParts.length - 1; i++) {
+					const part = pathParts[i]
+					if (!current[part]) {
+						current[part] = {
+							type: 'folder',
+							name: part,
+							path: pathParts.slice(0, i + 1).join('/'),
+							children: {},
+							files: [],
+						}
+					}
+					current = current[part].children
+				}
+				
+				// Add file to the last folder
+				const fileName = pathParts[pathParts.length - 1]
+				let parent = tree
+				for (const part of pathParts.slice(0, -1)) {
+					parent = parent[part].children
+				}
+				if (!parent[fileName]) {
+					parent[fileName] = {
+						type: 'file',
+						...file,
+						name: fileName,
+					}
+				}
+			})
+			
+			// Convert to array format
+			const convertToArray = (obj) => {
+				return Object.values(obj).map(item => {
+					if (item.type === 'folder') {
+						return {
+							...item,
+							children: convertToArray(item.children),
+						}
+					}
+					return item
+				}).sort((a, b) => {
+					// Folders first, then files, both alphabetically
+					if (a.type === 'folder' && b.type !== 'folder') return -1
+					if (a.type !== 'folder' && b.type === 'folder') return 1
+					return a.name.localeCompare(b.name)
+				})
+			}
+			
+			return convertToArray(tree)
+		},
 	},
 	mounted() {
 		this.loadFiles()
@@ -133,17 +173,21 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .archive-view {
 	min-height: 100vh;
+	width: 100%;
 	background: var(--color-main-background);
-	padding: 24px;
+	padding: 0;
+	margin: 0;
 }
 
 .archive-view__header {
-	margin-bottom: 24px;
+	margin: 0;
+	padding: 24px;
 	padding-bottom: 16px;
 	border-bottom: 1px solid var(--color-border);
+	background: var(--color-main-background);
 }
 
 .archive-view__title {
@@ -192,7 +236,18 @@ export default {
 }
 
 .archive-view__content {
-	padding: 24px 0;
+	padding: 24px;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.archive-view__tree {
+	width: 100%;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	padding: 8px;
 }
 
 .archive-view__stats {
@@ -201,35 +256,9 @@ export default {
 	font-size: 0.9em;
 }
 
-.archive-view__table {
-	width: 100%;
-	border-collapse: collapse;
-	background: var(--color-main-background);
-}
-
-.archive-view__table thead {
-	background: var(--color-background-dark);
-	border-bottom: 2px solid var(--color-border);
-}
-
-.archive-view__table th {
-	padding: 12px;
-	text-align: left;
-	font-weight: 600;
-	color: var(--color-main-text);
-}
-
-.archive-view__table td {
-	padding: 12px;
-	border-bottom: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-.archive-view__table tbody tr:hover {
-	background: var(--color-background-dark);
-}
-
-.archive-view__file-name {
-	font-weight: 500;
+.archive-view__stats {
+	margin-bottom: 16px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
 }
 </style>
