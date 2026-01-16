@@ -32,38 +32,67 @@ function autoOpenFile() {
 	
 	console.log('[Time Archive] Attempting to open file:', fileInfo)
 	
-	// Try to find file in DOM first (simpler approach)
+	// Try to find file in DOM (simpler and more reliable approach)
 	const tryFindInDOM = () => {
 		if (!fileInfo.id) return null
 		
-		// Look for file element with matching data-file-id or id attribute
-		const fileElement = document.querySelector(`[data-file-id="${fileInfo.id}"]`) ||
-		                   document.querySelector(`[data-id="${fileInfo.id}"]`) ||
-		                   document.querySelector(`[data-fileid="${fileInfo.id}"]`)
+		console.log('[Time Archive] Searching DOM for file ID:', fileInfo.id)
 		
-		if (fileElement) {
-			console.log('[Time Archive] Found file element in DOM:', fileElement)
-			return fileElement
+		// Try multiple selectors to find the file element
+		const selectors = [
+			`[data-file-id="${fileInfo.id}"]`,
+			`[data-id="${fileInfo.id}"]`,
+			`[data-fileid="${fileInfo.id}"]`,
+			`[data-file="${fileInfo.id}"]`,
+			`tr[data-id="${fileInfo.id}"]`,
+			`tr[data-fileid="${fileInfo.id}"]`,
+			`.file[data-id="${fileInfo.id}"]`,
+			`.file[data-fileid="${fileInfo.id}"]`,
+		]
+		
+		for (const selector of selectors) {
+			const element = document.querySelector(selector)
+			if (element) {
+				console.log('[Time Archive] Found file element with selector:', selector, element)
+				return element
+			}
 		}
 		
 		// Also try finding by file name if available
 		if (fileInfo.name) {
-			const nameElement = Array.from(document.querySelectorAll('[data-file-name], [data-name]')).find(el => {
-				const name = el.getAttribute('data-file-name') || el.getAttribute('data-name')
-				return name === fileInfo.name
-			})
-			if (nameElement) {
-				console.log('[Time Archive] Found file element by name:', nameElement)
-				return nameElement
+			console.log('[Time Archive] Searching DOM for file name:', fileInfo.name)
+			const nameSelectors = [
+				`[data-file-name="${fileInfo.name}"]`,
+				`[data-name="${fileInfo.name}"]`,
+				`tr[data-file="${fileInfo.name}"]`,
+			]
+			
+			for (const selector of nameSelectors) {
+				const element = document.querySelector(selector)
+				if (element) {
+					console.log('[Time Archive] Found file element by name with selector:', selector, element)
+					return element
+				}
+			}
+			
+			// Try finding by text content (file name in table row)
+			const allRows = document.querySelectorAll('tbody tr, .files-fileList tr, table tr')
+			for (const row of allRows) {
+				const text = row.textContent || row.innerText
+				if (text && text.includes(fileInfo.name)) {
+					console.log('[Time Archive] Found file element by text content:', row)
+					return row
+				}
 			}
 		}
 		
+		console.log('[Time Archive] File element not found in DOM')
 		return null
 	}
 	
 	// Wait for Files app to be fully loaded
 	const tryOpen = (attempts = 0) => {
-		if (attempts > 200) {
+		if (attempts > 300) {
 			console.warn('[Time Archive] Files app did not load in time to open file after', attempts, 'attempts')
 			// Last resort: try direct download
 			if (fileInfo.id) {
@@ -75,28 +104,52 @@ function autoOpenFile() {
 		}
 		
 		// First, try to find file in DOM (simpler and more reliable)
+		// This should work even if the Files app API isn't available
 		const fileElement = tryFindInDOM()
 		if (fileElement) {
-			console.log('[Time Archive] Attempting to open file via DOM element')
+			console.log('[Time Archive] Found file element, attempting to open via DOM')
 			try {
-				// Try double-click first
-				const dblClickEvent = new MouseEvent('dblclick', {
-					bubbles: true,
-					cancelable: true,
-					view: window
-				})
-				fileElement.dispatchEvent(dblClickEvent)
-				console.log('[Time Archive] Dispatched double-click event on file element')
+				// Scroll element into view first
+				fileElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+				
+				// Wait a bit for scroll, then try to open
+				setTimeout(() => {
+					try {
+						// Try double-click first (most reliable for opening files)
+						const dblClickEvent = new MouseEvent('dblclick', {
+							bubbles: true,
+							cancelable: true,
+							view: window,
+							detail: 2
+						})
+						fileElement.dispatchEvent(dblClickEvent)
+						console.log('[Time Archive] Dispatched double-click event on file element')
+					} catch (e) {
+						console.warn('[Time Archive] Failed to dispatch double-click:', e)
+						try {
+							// Try single click
+							const clickEvent = new MouseEvent('click', {
+								bubbles: true,
+								cancelable: true,
+								view: window
+							})
+							fileElement.dispatchEvent(clickEvent)
+							console.log('[Time Archive] Dispatched click event on file element')
+						} catch (e2) {
+							console.warn('[Time Archive] Failed to dispatch click:', e2)
+							try {
+								// Last resort: direct click method
+								fileElement.click()
+								console.log('[Time Archive] Called click() on file element')
+							} catch (e3) {
+								console.warn('[Time Archive] All DOM click methods failed:', e3)
+							}
+						}
+					}
+				}, 300)
 				return
 			} catch (e) {
-				console.warn('[Time Archive] Failed to dispatch double-click:', e)
-				try {
-					fileElement.click()
-					console.log('[Time Archive] Clicked file element')
-					return
-				} catch (e2) {
-					console.warn('[Time Archive] Failed to click file element:', e2)
-				}
+				console.warn('[Time Archive] Error opening file via DOM:', e)
 			}
 		}
 		
@@ -246,12 +299,12 @@ function autoOpenFile() {
 				}
 			}, 1500)
 		} else {
-			// Files app not loaded yet, try again
-			if (attempts % 10 === 0) {
-				console.log('[Time Archive] Waiting for Files app to load... attempt', attempts)
-				console.log('[Time Archive] window.OCA:', !!window.OCA)
-				console.log('[Time Archive] window.OCA.Files:', !!(window.OCA && window.OCA.Files))
-				console.log('[Time Archive] window.OCA.Files.App:', !!(window.OCA && window.OCA.Files && window.OCA.Files.App))
+			// Files app API not available, but we can still try DOM approach
+			// Continue trying to find file in DOM
+			if (attempts % 20 === 0) {
+				console.log('[Time Archive] Waiting for file to appear in DOM... attempt', attempts)
+				console.log('[Time Archive] DOM ready state:', document.readyState)
+				console.log('[Time Archive] File table rows found:', document.querySelectorAll('tbody tr, .files-fileList tr').length)
 			}
 			setTimeout(() => tryOpen(attempts + 1), 100)
 		}
