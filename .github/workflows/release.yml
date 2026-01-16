@@ -109,11 +109,24 @@ jobs:
             ./ /tmp/${APP_NAME}-release/${APP_NAME}/
           
           # Create tarball (tar.gz format required by Nextcloud)
+          # Using explicit tar with gzip compression - NOT zip
           cd /tmp/${APP_NAME}-release
+          
+          # Remove any existing zip files (just in case)
+          rm -f *.zip
+          
+          # Create tar.gz using tar with gzip compression
           tar -czf ${ARCHIVE_NAME} ${APP_NAME}/
           
-          # Verify it's a tar.gz file (not zip)
-          if ! file ${ARCHIVE_NAME} | grep -q "gzip compressed"; then
+          # Double-check: verify it's NOT a zip file
+          if file ${ARCHIVE_NAME} | grep -qi "zip"; then
+            echo "ERROR: Archive was created as ZIP instead of TAR.GZ!"
+            file ${ARCHIVE_NAME}
+            exit 1
+          fi
+          
+          # Verify it's a tar.gz file (gzip compressed tar)
+          if ! file ${ARCHIVE_NAME} | grep -qE "(gzip|tar archive)"; then
             echo "ERROR: Archive is not a gzip compressed tar file!"
             file ${ARCHIVE_NAME}
             exit 1
@@ -126,13 +139,22 @@ jobs:
             exit 1
           fi
           
+          # Verify file extension is .tar.gz
+          if [[ ! "${ARCHIVE_NAME}" =~ \.tar\.gz$ ]]; then
+            echo "ERROR: Archive filename must end with .tar.gz, got: ${ARCHIVE_NAME}"
+            exit 1
+          fi
+          
           # Move to workspace
           mv ${ARCHIVE_NAME} ${{ github.workspace }}/
           
-          # Verify file exists and show info
-          ls -lh ${{ github.workspace }}/${ARCHIVE_NAME}
-          file ${{ github.workspace }}/${ARCHIVE_NAME}
-          echo "✅ Created ${ARCHIVE_NAME} (tar.gz format)"
+          # Final verification
+          FINAL_FILE="${{ github.workspace }}/${ARCHIVE_NAME}"
+          echo "=== Archive Verification ==="
+          ls -lh ${FINAL_FILE}
+          file ${FINAL_FILE}
+          echo "File extension: ${ARCHIVE_NAME##*.}"
+          echo "✅ Created ${ARCHIVE_NAME} (tar.gz format - NOT zip)"
 
       - name: Sign app (if certificate available)
         if: env.SIGNING_CERTIFICATE != '' && env.SIGNING_KEY != ''
