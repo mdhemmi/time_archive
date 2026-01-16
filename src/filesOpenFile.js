@@ -32,21 +32,99 @@ function autoOpenFile() {
 	
 	console.log('[Time Archive] Attempting to open file:', fileInfo)
 	
+	// Try to find file in DOM first (simpler approach)
+	const tryFindInDOM = () => {
+		if (!fileInfo.id) return null
+		
+		// Look for file element with matching data-file-id or id attribute
+		const fileElement = document.querySelector(`[data-file-id="${fileInfo.id}"]`) ||
+		                   document.querySelector(`[data-id="${fileInfo.id}"]`) ||
+		                   document.querySelector(`[data-fileid="${fileInfo.id}"]`)
+		
+		if (fileElement) {
+			console.log('[Time Archive] Found file element in DOM:', fileElement)
+			return fileElement
+		}
+		
+		// Also try finding by file name if available
+		if (fileInfo.name) {
+			const nameElement = Array.from(document.querySelectorAll('[data-file-name], [data-name]')).find(el => {
+				const name = el.getAttribute('data-file-name') || el.getAttribute('data-name')
+				return name === fileInfo.name
+			})
+			if (nameElement) {
+				console.log('[Time Archive] Found file element by name:', nameElement)
+				return nameElement
+			}
+		}
+		
+		return null
+	}
+	
 	// Wait for Files app to be fully loaded
 	const tryOpen = (attempts = 0) => {
-		if (attempts > 100) {
+		if (attempts > 200) {
 			console.warn('[Time Archive] Files app did not load in time to open file after', attempts, 'attempts')
+			// Last resort: try direct download
+			if (fileInfo.id) {
+				console.log('[Time Archive] Attempting direct file download as last resort')
+				const downloadUrl = OC.generateUrl('/apps/files/ajax/download.php?files=' + fileInfo.id)
+				window.open(downloadUrl, '_blank')
+			}
 			return
 		}
 		
-		// Check if Files app is loaded
+		// First, try to find file in DOM (simpler and more reliable)
+		const fileElement = tryFindInDOM()
+		if (fileElement) {
+			console.log('[Time Archive] Attempting to open file via DOM element')
+			try {
+				// Try double-click first
+				const dblClickEvent = new MouseEvent('dblclick', {
+					bubbles: true,
+					cancelable: true,
+					view: window
+				})
+				fileElement.dispatchEvent(dblClickEvent)
+				console.log('[Time Archive] Dispatched double-click event on file element')
+				return
+			} catch (e) {
+				console.warn('[Time Archive] Failed to dispatch double-click:', e)
+				try {
+					fileElement.click()
+					console.log('[Time Archive] Clicked file element')
+					return
+				} catch (e2) {
+					console.warn('[Time Archive] Failed to click file element:', e2)
+				}
+			}
+		}
+		
+		// Check multiple possible locations for Files app API
+		let fileList = null
 		if (window.OCA && window.OCA.Files && window.OCA.Files.App && window.OCA.Files.App.fileList) {
-			const fileList = window.OCA.Files.App.fileList
+			fileList = window.OCA.Files.App.fileList
+		} else if (window.OCA && window.OCA.Files && window.OCA.Files.fileList) {
+			fileList = window.OCA.Files.fileList
+		} else if (window.OC && window.OC.Files && window.OC.Files.fileList) {
+			fileList = window.OC.Files.fileList
+		} else if (window.Files && window.Files.fileList) {
+			fileList = window.Files.fileList
+		}
+		
+		if (fileList && fileList.files) {
 			
 			// Wait a bit more for file list to be populated
 			setTimeout(() => {
-				console.log('[Time Archive] File list loaded, searching for file ID:', fileInfo.id)
-				console.log('[Time Archive] File list contains', fileList.files.length, 'files')
+				console.log('[Time Archive] File list found! Searching for file ID:', fileInfo.id)
+				console.log('[Time Archive] File list contains', fileList.files ? fileList.files.length : 0, 'files')
+				
+				if (!fileList.files || fileList.files.length === 0) {
+					console.warn('[Time Archive] File list is empty, waiting for files to load...')
+					// Try again after a longer delay
+					setTimeout(() => tryOpen(attempts + 1), 500)
+					return
+				}
 				
 				// Try to find the file by ID first, then by name
 				let fileModel = null
@@ -168,7 +246,13 @@ function autoOpenFile() {
 				}
 			}, 1500)
 		} else {
-			// Try again after a short delay
+			// Files app not loaded yet, try again
+			if (attempts % 10 === 0) {
+				console.log('[Time Archive] Waiting for Files app to load... attempt', attempts)
+				console.log('[Time Archive] window.OCA:', !!window.OCA)
+				console.log('[Time Archive] window.OCA.Files:', !!(window.OCA && window.OCA.Files))
+				console.log('[Time Archive] window.OCA.Files.App:', !!(window.OCA && window.OCA.Files && window.OCA.Files.App))
+			}
 			setTimeout(() => tryOpen(attempts + 1), 100)
 		}
 	}
