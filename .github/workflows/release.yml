@@ -119,17 +119,23 @@ jobs:
           # Create tar.gz using tar with gzip compression
           tar -czf ${ARCHIVE_NAME} ${APP_NAME}/
           
-          # Double-check: verify it's NOT a zip file
-          if file ${ARCHIVE_NAME} | grep -qi "zip"; then
-            echo "ERROR: Archive was created as ZIP instead of TAR.GZ!"
-            file ${ARCHIVE_NAME}
+          # Verify it's a tar.gz file (gzip compressed tar)
+          # A tar.gz file will show as "gzip compressed data" from the file command
+          FILE_TYPE=$(file ${ARCHIVE_NAME})
+          echo "File type: ${FILE_TYPE}"
+          
+          # Check that it's gzip compressed (tar.gz files are gzip compressed)
+          if ! echo "${FILE_TYPE}" | grep -qi "gzip"; then
+            echo "ERROR: Archive is not a gzip compressed file!"
+            echo "Expected: gzip compressed data"
+            echo "Got: ${FILE_TYPE}"
             exit 1
           fi
           
-          # Verify it's a tar.gz file (gzip compressed tar)
-          if ! file ${ARCHIVE_NAME} | grep -qE "(gzip|tar archive)"; then
-            echo "ERROR: Archive is not a gzip compressed tar file!"
-            file ${ARCHIVE_NAME}
+          # Verify it's NOT a zip file (zip files show as "Zip archive")
+          if echo "${FILE_TYPE}" | grep -qi "zip archive"; then
+            echo "ERROR: Archive was created as ZIP instead of TAR.GZ!"
+            echo "Got: ${FILE_TYPE}"
             exit 1
           fi
           
