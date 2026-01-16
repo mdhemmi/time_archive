@@ -77,7 +77,7 @@ export default {
 	},
 	data() {
 		return {
-			isExpanded: true, // Start with folders expanded
+			isExpanded: false, // Start with folders collapsed
 		}
 	},
 	methods: {
