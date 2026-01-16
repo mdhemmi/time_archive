@@ -191,6 +191,37 @@ jobs:
           echo "⚠️  Signing requires Nextcloud server. Archive created but not signed."
           echo "⚠️  You'll need to sign manually using: php occ app:sign time_archive"
 
+      - name: Verify archive before release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          ARCHIVE_FILE="time_archive-${{ steps.get_version.outputs.version }}.tar.gz"
+          if [ ! -f "${ARCHIVE_FILE}" ]; then
+            echo "ERROR: Archive file not found: ${ARCHIVE_FILE}"
+            exit 1
+          fi
+          
+          # Verify it's still a tar.gz (not converted to zip)
+          FILE_TYPE=$(file "${ARCHIVE_FILE}")
+          echo "Final archive type: ${FILE_TYPE}"
+          
+          if echo "${FILE_TYPE}" | grep -qi "zip archive"; then
+            echo "ERROR: Archive was converted to ZIP!"
+            exit 1
+          fi
+          
+          if ! echo "${FILE_TYPE}" | grep -qi "gzip"; then
+            echo "ERROR: Archive is not gzip compressed!"
+            exit 1
+          fi
+          
+          # Verify extension
+          if [[ ! "${ARCHIVE_FILE}" =~ \.tar\.gz$ ]]; then
+            echo "ERROR: Archive filename must be .tar.gz, got: ${ARCHIVE_FILE}"
+            exit 1
+          fi
+          
+          echo "✅ Archive verified as tar.gz before release"
+
       - name: Create GitHub Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
@@ -199,6 +230,10 @@ jobs:
             time_archive-${{ steps.get_version.outputs.version }}.tar.gz
           name: Release v${{ steps.get_version.outputs.version }}
           tag_name: v${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          make_latest: true
           body: |
             ## Version ${{ steps.get_version.outputs.version }}
             
@@ -232,19 +267,46 @@ jobs:
 
       - name: Upload archive artifact (manual run)
         if: github.event_name == 'workflow_dispatch'
+        run: |
+          ARCHIVE_FILE="time_archive-${{ steps.get_version.outputs.version }}.tar.gz"
+          # Verify it's still tar.gz before uploading
+          if ! file "${ARCHIVE_FILE}" | grep -qi "gzip"; then
+            echo "ERROR: Archive is not tar.gz before artifact upload!"
+            exit 1
+          fi
+          # Use upload-artifact with explicit name to preserve extension
+          echo "Uploading ${ARCHIVE_FILE} as artifact"
+        continue-on-error: false
+
+      - name: Upload archive artifact file (manual run)
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: time_archive-${{ steps.get_version.outputs.version }}
+          name: time_archive-${{ steps.get_version.outputs.version }}-tar.gz
           path: time_archive-${{ steps.get_version.outputs.version }}.tar.gz
           retention-days: 30
+          if-no-files-found: error
 
       - name: Upload unsigned archive artifact (tag push without signing)
         if: github.event_name == 'push' && (env.SIGNING_CERTIFICATE == '' || env.SIGNING_KEY == '')
+        run: |
+          ARCHIVE_FILE="time_archive-${{ steps.get_version.outputs.version }}.tar.gz"
+          # Verify it's still tar.gz before uploading
+          if ! file "${ARCHIVE_FILE}" | grep -qi "gzip"; then
+            echo "ERROR: Archive is not tar.gz before artifact upload!"
+            exit 1
+          fi
+          echo "Uploading ${ARCHIVE_FILE} as artifact"
+        continue-on-error: false
+
+      - name: Upload unsigned archive artifact file (tag push without signing)
+        if: github.event_name == 'push' && (env.SIGNING_CERTIFICATE == '' || env.SIGNING_KEY == '')
         uses: actions/upload-artifact@v4
         with:
-          name: time_archive-${{ steps.get_version.outputs.version }}-unsigned
+          name: time_archive-${{ steps.get_version.outputs.version }}-unsigned-tar.gz
           path: time_archive-${{ steps.get_version.outputs.version }}.tar.gz
           retention-days: 30
+          if-no-files-found: error
 
       - name: Summary
         run: |
