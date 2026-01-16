@@ -36,6 +36,8 @@ function addArchiveLink() {
 				z-index: 9999;
 				display: flex;
 				align-items: center;
+				justify-content: center;
+				gap: 8px;
 				padding: 12px 20px;
 				background-color: var(--color-primary-element, #0082c9);
 				color: var(--color-primary-element-text, #ffffff);
