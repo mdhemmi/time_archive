@@ -104,7 +104,11 @@ function autoOpenFile() {
 		}
 		
 		// Try multiple selectors to find the file element
+		// Files app uses data-cy-files-list-row-fileid attribute!
 		const selectors = [
+			`[data-cy-files-list-row-fileid="${fileInfo.id}"]`,
+			`tr[data-cy-files-list-row-fileid="${fileInfo.id}"]`,
+			`.files-list__row[data-cy-files-list-row-fileid="${fileInfo.id}"]`,
 			`[data-file-id="${fileInfo.id}"]`,
 			`[data-fileid="${fileInfo.id}"]`,
 			`[data-file="${fileInfo.id}"]`,
@@ -118,7 +122,7 @@ function autoOpenFile() {
 		for (const selector of selectors) {
 			try {
 				const element = document.querySelector(selector)
-				if (element && !element.classList.contains('notification')) {
+				if (element && !element.classList.contains('notification') && !element.classList.contains('files-list_row-head')) {
 					console.log('[Time Archive] Found file element with selector:', selector, element)
 					return element
 				}
@@ -134,13 +138,14 @@ function autoOpenFile() {
 			    row.classList.contains('header') ||
 			    row.closest('thead') !== null) continue
 			
-			// Check row's own attributes
-			const rowId = row.getAttribute('data-fileid') || 
+			// Check row's own attributes - Files app uses data-cy-files-list-row-fileid!
+			const rowId = row.getAttribute('data-cy-files-list-row-fileid') ||
+			             row.getAttribute('data-fileid') || 
 			             row.getAttribute('data-file-id') || 
 			             row.getAttribute('data-file') ||
 			             row.getAttribute('data-id') ||
 			             row.getAttribute('id') ||
-			             (row.dataset && (row.dataset.fileid || row.dataset.fileId || row.dataset.file || row.dataset.id))
+			             (row.dataset && (row.dataset.cyFilesListRowFileid || row.dataset.fileid || row.dataset.fileId || row.dataset.file || row.dataset.id))
 			
 			// Try to match the ID (as string or number)
 			if (rowId) {
@@ -152,14 +157,15 @@ function autoOpenFile() {
 			}
 			
 			// Check child elements for file ID (links, buttons, etc.)
-			const childElements = row.querySelectorAll('a, button, [data-fileid], [data-file-id], [data-file], [data-id]')
+			const childElements = row.querySelectorAll('a, button, [data-cy-files-list-row-fileid], [data-fileid], [data-file-id], [data-file], [data-id]')
 			for (const child of childElements) {
-				const childId = child.getAttribute('data-fileid') || 
+				const childId = child.getAttribute('data-cy-files-list-row-fileid') ||
+				               child.getAttribute('data-fileid') || 
 				               child.getAttribute('data-file-id') || 
 				               child.getAttribute('data-file') ||
 				               child.getAttribute('data-id') ||
 				               child.getAttribute('href')?.match(/fileid=(\d+)/)?.[1] ||
-				               (child.dataset && (child.dataset.fileid || child.dataset.fileId || child.dataset.file || child.dataset.id))
+				               (child.dataset && (child.dataset.cyFilesListRowFileid || child.dataset.fileid || child.dataset.fileId || child.dataset.file || child.dataset.id))
 				
 				if (childId) {
 					const childIdNum = parseInt(childId)
@@ -186,8 +192,15 @@ function autoOpenFile() {
 				// Skip headers
 				if (row.classList.contains('files-list_row-head') || row.classList.contains('header')) continue
 				
+				// Check data-cy-files-list-row-name attribute first (more reliable)
+				const rowName = row.getAttribute('data-cy-files-list-row-name')
+				if (rowName && rowName === fileInfo.name) {
+					console.log('[Time Archive] Found file element by name attribute. Row:', row)
+					return row
+				}
+				
+				// Fallback: check text content
 				const text = row.textContent || row.innerText || ''
-				// Check if the file name appears in the row text
 				if (text && text.trim().includes(fileInfo.name)) {
 					console.log('[Time Archive] Found file element by name in text content. Row:', row)
 					return row
