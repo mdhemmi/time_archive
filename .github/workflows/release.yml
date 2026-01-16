@@ -260,7 +260,7 @@ jobs:
             
             Then upload the signed tarball to https://apps.nextcloud.com
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         continue-on-error: false
         timeout-minutes: 5
 
