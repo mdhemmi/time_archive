@@ -279,10 +279,11 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: time_archive-${{ steps.get_version.outputs.version }}-tar.gz
+          name: time_archive-${{ steps.get_version.outputs.version }}
           path: time_archive-${{ steps.get_version.outputs.version }}.tar.gz
           retention-days: 30
           if-no-files-found: error
+          compression-level: 0
 
       - name: Upload unsigned archive artifact (tag push without signing)
         if: github.event_name == 'push' && (env.SIGNING_CERTIFICATE == '' || env.SIGNING_KEY == '')
@@ -300,10 +301,11 @@ jobs:
         if: github.event_name == 'push' && (env.SIGNING_CERTIFICATE == '' || env.SIGNING_KEY == '')
         uses: actions/upload-artifact@v4
         with:
-          name: time_archive-${{ steps.get_version.outputs.version }}-unsigned-tar.gz
+          name: time_archive-${{ steps.get_version.outputs.version }}-unsigned
           path: time_archive-${{ steps.get_version.outputs.version }}.tar.gz
           retention-days: 30
           if-no-files-found: error
+          compression-level: 0
 
       - name: Summary
         run: |
@@ -317,7 +319,11 @@ jobs:
             echo "✅ Archive signed (if signing step succeeded)" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Important: Download from Release, not Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  GitHub Actions artifacts are always wrapped in ZIP files." >> $GITHUB_STEP_SUMMARY
+          echo "✅ Download the tar.gz file from the GitHub Release page (not artifacts) to get the correct format." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review the GitHub release" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to the GitHub Release page and download the tar.gz file" >> $GITHUB_STEP_SUMMARY
           echo "2. Sign the archive (if not already signed)" >> $GITHUB_STEP_SUMMARY
           echo "3. Upload signed archive to https://apps.nextcloud.com" >> $GITHUB_STEP_SUMMARY
