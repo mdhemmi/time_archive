@@ -82,6 +82,7 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           APP_NAME="time_archive"
+          ARCHIVE_NAME="${APP_NAME}-${VERSION}.tar.gz"
           
           # Create a clean release directory
           mkdir -p /tmp/${APP_NAME}-release
@@ -107,14 +108,31 @@ jobs:
             --exclude='.phpunit.result.cache' \
             ./ /tmp/${APP_NAME}-release/${APP_NAME}/
           
-          # Create tarball
+          # Create tarball (tar.gz format required by Nextcloud)
           cd /tmp/${APP_NAME}-release
-          tar -czf ${APP_NAME}-${VERSION}.tar.gz ${APP_NAME}/
+          tar -czf ${ARCHIVE_NAME} ${APP_NAME}/
+          
+          # Verify it's a tar.gz file (not zip)
+          if ! file ${ARCHIVE_NAME} | grep -q "gzip compressed"; then
+            echo "ERROR: Archive is not a gzip compressed tar file!"
+            file ${ARCHIVE_NAME}
+            exit 1
+          fi
+          
+          # Verify archive structure (should contain app folder)
+          if ! tar -tzf ${ARCHIVE_NAME} | head -1 | grep -q "^${APP_NAME}/"; then
+            echo "ERROR: Archive structure is incorrect! Should start with ${APP_NAME}/"
+            tar -tzf ${ARCHIVE_NAME} | head -5
+            exit 1
+          fi
           
           # Move to workspace
-          mv ${APP_NAME}-${VERSION}.tar.gz ${{ github.workspace }}/
+          mv ${ARCHIVE_NAME} ${{ github.workspace }}/
           
-          echo "Created ${APP_NAME}-${VERSION}.tar.gz"
+          # Verify file exists and show info
+          ls -lh ${{ github.workspace }}/${ARCHIVE_NAME}
+          file ${{ github.workspace }}/${ARCHIVE_NAME}
+          echo "✅ Created ${ARCHIVE_NAME} (tar.gz format)"
 
       - name: Sign app (if certificate available)
         if: env.SIGNING_CERTIFICATE != '' && env.SIGNING_KEY != ''
