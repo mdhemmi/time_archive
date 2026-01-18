@@ -21,6 +21,7 @@ use OCP\Files\Node;
 use OCP\Files\LockedException;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
+use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IUserManager;
 use OCP\Share\IManager as IShareManager;
@@ -40,6 +41,7 @@ class ArchiveJob extends TimedJob {
 		private readonly IJobList $jobList,
 		private readonly IUserManager $userManager,
 		private readonly IShareManager $shareManager,
+		private readonly IConfig $config,
 		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($timeFactory);
@@ -644,7 +646,8 @@ class ArchiveJob extends TimedJob {
 			if (strpos($relativePath, '/') === false) {
 				// This is a top-level folder, check if it's in the protected list
 				$folderName = $folder->getName();
-				if (in_array($folderName, Constants::PROTECTED_FOLDERS, true)) {
+				$protectedFolders = Constants::getProtectedFolders($this->config);
+				if (in_array($folderName, $protectedFolders, true)) {
 					return true;
 				}
 			}

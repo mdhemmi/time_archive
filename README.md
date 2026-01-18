@@ -85,6 +85,21 @@ Regular users cannot:
 - Background jobs run daily to check and archive files for all users
 - Archived files remain accessible via the web interface
 - Each user has their own `.archive` folder, ensuring files are organized per user
+- **Protected folders**: Top-level folders used by mobile apps (Camera, Photos, SofortUpload, etc.) are never archived to prevent breaking auto-upload functionality. Files inside these folders can still be archived, but the folders themselves remain.
+
+## Configuration
+
+### Protected Folders
+
+To configure additional protected folders (folders that should never be archived), you can set them via Nextcloud's `occ` command:
+
+```bash
+php occ config:app:set time_archive protected_folders --value "MyCustomFolder,AnotherFolder"
+```
+
+The default protected folders include: `Camera`, `Photos`, `Documents`, `Screenshots`, `Videos`, `Downloads`, `DCIM`, `Pictures`, `Images`, `SofortUpload`.
+
+**Note**: Only top-level folders (direct children of `/user/files/`) are protected. Subfolders can still be archived.
 
 ## Viewing Archived Files
 
