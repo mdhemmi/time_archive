@@ -21,4 +21,20 @@ class Constants {
 	public const MODE_MTIME = 1;
 
 	public const ARCHIVE_FOLDER = '.archive';
+	
+	/**
+	 * Folders that should never be archived (used by mobile apps for auto-upload)
+	 * These are typically top-level folders in the user's files directory
+	 */
+	public const PROTECTED_FOLDERS = [
+		'Camera',
+		'Photos',
+		'Documents',
+		'Screenshots',
+		'Videos',
+		'Downloads',
+		'DCIM', // Android camera folder
+		'Pictures',
+		'Images',
+	];
 }

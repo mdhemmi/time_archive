@@ -211,6 +211,13 @@ class ArchiveJob extends TimedJob {
 		if ($folder->getName() === Constants::ARCHIVE_FOLDER) {
 			return $stats;
 		}
+		
+		// Check if this is a protected folder (mobile app upload folder)
+		// We still process files inside, but never archive the folder itself
+		$isProtected = $this->isProtectedFolder($folder, $userId);
+		if ($isProtected) {
+			$this->logger->debug('Processing protected folder ' . $folder->getName() . ' (mobile app upload folder) - files will be archived but folder will not');
+		}
 
 		$nodes = $folder->getDirectoryListing();
 		foreach ($nodes as $node) {
@@ -237,38 +244,41 @@ class ArchiveJob extends TimedJob {
 		
 		// After processing all files and subfolders, check if this folder is now empty
 		// and should be archived
-		try {
-			// Re-fetch the folder to get current state (files may have been moved)
-			$currentNodes = $folder->getDirectoryListing();
-			$remainingNodes = array_filter($currentNodes, function($node) {
-				// Count only nodes that are not in the archive folder
-				return strpos($node->getPath(), '/' . Constants::ARCHIVE_FOLDER . '/') === false;
-			});
-			
-			// If folder is now empty (or only contains .archive folder references)
-			if (empty($remainingNodes)) {
-				// Check if folder meets archive criteria based on its modification time
-				$folderTime = $this->getDateFromNode($folder, $timeAfter);
+		// Skip this check for protected folders (mobile app upload folders)
+		if (!$this->isProtectedFolder($folder, $userId)) {
+			try {
+				// Re-fetch the folder to get current state (files may have been moved)
+				$currentNodes = $folder->getDirectoryListing();
+				$remainingNodes = array_filter($currentNodes, function($node) {
+					// Count only nodes that are not in the archive folder
+					return strpos($node->getPath(), '/' . Constants::ARCHIVE_FOLDER . '/') === false;
+				});
 				
-				if ($folderTime < $archiveBefore) {
-					$this->logger->debug('Folder ' . $folder->getId() . ' is empty and meets archive criteria, archiving folder');
-					try {
-						$this->moveToArchive($folder, 3, 2);
-						$stats['foldersArchived']++;
-						$this->logger->info('Archived empty folder ' . $folder->getId() . ' (' . $folder->getPath() . ')');
-					} catch (Exception $e) {
-						$this->logger->warning('Failed to archive empty folder ' . $folder->getId() . ': ' . $e->getMessage(), [
-							'exception' => $e,
-							'folderPath' => $folder->getPath(),
-						]);
+				// If folder is now empty (or only contains .archive folder references)
+				if (empty($remainingNodes)) {
+					// Check if folder meets archive criteria based on its modification time
+					$folderTime = $this->getDateFromNode($folder, $timeAfter);
+					
+					if ($folderTime < $archiveBefore) {
+						$this->logger->debug('Folder ' . $folder->getId() . ' is empty and meets archive criteria, archiving folder');
+						try {
+							$this->moveToArchive($folder, 3, 2);
+							$stats['foldersArchived']++;
+							$this->logger->info('Archived empty folder ' . $folder->getId() . ' (' . $folder->getPath() . ')');
+						} catch (Exception $e) {
+							$this->logger->warning('Failed to archive empty folder ' . $folder->getId() . ': ' . $e->getMessage(), [
+								'exception' => $e,
+								'folderPath' => $folder->getPath(),
+							]);
+						}
+					} else {
+						$this->logger->debug('Folder ' . $folder->getId() . ' is empty but does not meet archive criteria (age: ' . $folderTime->format('Y-m-d') . ', threshold: ' . $archiveBefore->format('Y-m-d') . ')');
 					}
-				} else {
-					$this->logger->debug('Folder ' . $folder->getId() . ' is empty but does not meet archive criteria (age: ' . $folderTime->format('Y-m-d') . ', threshold: ' . $archiveBefore->format('Y-m-d') . ')');
 				}
+			} catch (Exception $e) {
+				// If we can't check folder state, log but don't fail
+				$this->logger->debug('Could not check if folder ' . $folder->getId() . ' is empty: ' . $e->getMessage());
 			}
-		} catch (Exception $e) {
-			// If we can't check folder state, log but don't fail
-			$this->logger->debug('Could not check if folder ' . $folder->getId() . ' is empty: ' . $e->getMessage());
 		}
 		
 		return $stats;
@@ -602,6 +612,48 @@ class ArchiveJob extends TimedJob {
 				'exception' => $e,
 			]);
 			error_log('Time Archive: Failed to add archive folder to favorites: ' . $e->getMessage());
+		}
+	}
+
+	/**
+	 * Check if a folder is a protected mobile app upload folder
+	 * These folders should never be archived to prevent breaking mobile app auto-upload
+	 * 
+	 * @param Folder $folder The folder to check
+	 * @param string $userId The user ID
+	 * @return bool True if the folder is protected and should not be archived
+	 */
+	private function isProtectedFolder(Folder $folder, string $userId): bool {
+		try {
+			$userFolder = $this->rootFolder->getUserFolder($userId);
+			$userFolderPath = rtrim($userFolder->getPath(), '/');
+			$folderPath = $folder->getPath();
+			
+			// Check if this is a top-level folder (direct child of user's files folder)
+			// Example: /user/files/Camera -> Camera is top-level
+			$relativePath = '';
+			if (str_starts_with($folderPath, $userFolderPath . '/')) {
+				$relativePath = substr($folderPath, strlen($userFolderPath) + 1);
+			} else {
+				// Not in user's files folder, not protected
+				return false;
+			}
+			
+			// Check if this is a top-level folder (no slashes in relative path)
+			// Top-level folders are direct children of /user/files/
+			if (strpos($relativePath, '/') === false) {
+				// This is a top-level folder, check if it's in the protected list
+				$folderName = $folder->getName();
+				if (in_array($folderName, Constants::PROTECTED_FOLDERS, true)) {
+					return true;
+				}
+			}
+			
+			return false;
+		} catch (Exception $e) {
+			// If we can't check, assume it's not protected to be safe
+			$this->logger->debug('Could not check if folder is protected: ' . $e->getMessage());
+			return false;
 		}
 	}
 
