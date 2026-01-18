@@ -245,7 +245,7 @@ class ArchiveJob extends TimedJob {
 		// After processing all files and subfolders, check if this folder is now empty
 		// and should be archived
 		// Skip this check for protected folders (mobile app upload folders)
-		if (!$this->isProtectedFolder($folder, $userId)) {
+		if (!$isProtected) {
 			try {
 				// Re-fetch the folder to get current state (files may have been moved)
 				$currentNodes = $folder->getDirectoryListing();
