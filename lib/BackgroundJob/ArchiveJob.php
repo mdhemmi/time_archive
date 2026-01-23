@@ -102,16 +102,23 @@ class ArchiveJob extends TimedJob {
 		$archiveBefore = $this->getBeforeDate((int)$data['time_unit'], (int)$data['time_amount']);
 		$timeAfter = (int)$data['time_after'];
 
+		// Load global include/exclude path configuration from app config.
+		// Paths are relative to the user's files root (for example "Projects", "Photos/Family").
+		$includePathsRaw = (string)$this->config->getAppValue('time_archive', 'include_paths', '');
+		$excludePathsRaw = (string)$this->config->getAppValue('time_archive', 'exclude_paths', '');
+		$includePaths = $this->parsePathList($includePathsRaw);
+		$excludePaths = $this->parsePathList($excludePathsRaw);
+
 		if ($tagId !== null) {
 			// Tag-based archiving
 			$this->logger->info("Running archive for Tag $tagId with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
 			error_log("Time Archive: Running archive for Tag $tagId with archive before " . $archiveBefore->format('Y-m-d H:i:s'));
-			$this->archiveByTag($tagId, $archiveBefore, $timeAfter);
+			$this->archiveByTag($tagId, $archiveBefore, $timeAfter, $includePaths, $excludePaths);
 		} else {
 			// Time-based archiving - archive all files for all users
 			$this->logger->info("Running time-based archive (Rule $ruleId) with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
 			error_log("Time Archive: Running time-based archive (Rule $ruleId) with archive before " . $archiveBefore->format('Y-m-d H:i:s'));
-			$stats = $this->archiveByTime($archiveBefore, $timeAfter);
+			$stats = $this->archiveByTime($archiveBefore, $timeAfter, $includePaths, $excludePaths);
 			$this->logger->info("Archive job completed: " . json_encode($stats));
 			error_log("Time Archive: Archive job completed - " . json_encode($stats));
 		}
@@ -120,7 +127,7 @@ class ArchiveJob extends TimedJob {
 	/**
 	 * Archive files based on tag
 	 */
-	private function archiveByTag(int $tagId, \DateTime $archiveBefore, int $timeAfter): void {
+	private function archiveByTag(int $tagId, \DateTime $archiveBefore, int $timeAfter, array $includePaths = [], array $excludePaths = []): void {
 		$offset = '';
 		$limit = 1000;
 		while ($offset !== null) {
@@ -138,7 +145,7 @@ class ArchiveJob extends TimedJob {
 					continue;
 				}
 
-				$this->archiveNode($node, $archiveBefore, $timeAfter, (string)$tagId);
+				$this->archiveNode($node, $archiveBefore, $timeAfter, (string)$tagId, $includePaths, $excludePaths);
 			}
 
 			if (empty($fileIds) || count($fileIds) < $limit) {
@@ -154,7 +161,7 @@ class ArchiveJob extends TimedJob {
 	 * 
 	 * @return array{usersProcessed: int, filesArchived: int, filesChecked: int, foldersArchived: int}
 	 */
-	private function archiveByTime(\DateTime $archiveBefore, int $timeAfter): array {
+	private function archiveByTime(\DateTime $archiveBefore, int $timeAfter, array $includePaths = [], array $excludePaths = []): array {
 		$stats = [
 			'usersProcessed' => 0,
 			'filesArchived' => 0,
@@ -164,7 +171,7 @@ class ArchiveJob extends TimedJob {
 		
 		error_log("Time Archive: Starting to process all users. Archive threshold: " . $archiveBefore->format('Y-m-d H:i:s'));
 		
-		$this->userManager->callForAllUsers(function ($user) use ($archiveBefore, $timeAfter, &$stats) {
+		$this->userManager->callForAllUsers(function ($user) use ($archiveBefore, $timeAfter, $includePaths, $excludePaths, &$stats) {
 			$userId = $user->getUID();
 			try {
 				error_log("Time Archive: Processing user: $userId");
@@ -173,7 +180,7 @@ class ArchiveJob extends TimedJob {
 					Filesystem::init($userId, '/' . $userId . '/files');
 				}
 				
-				$userStats = $this->archiveUserFolder($userFolder, $archiveBefore, $timeAfter, $userId);
+				$userStats = $this->archiveUserFolder($userFolder, $archiveBefore, $timeAfter, $userId, $includePaths, $excludePaths);
 				$stats['usersProcessed']++;
 				$stats['filesArchived'] += $userStats['filesArchived'];
 				$stats['filesChecked'] += $userStats['filesChecked'];
@@ -202,7 +209,7 @@ class ArchiveJob extends TimedJob {
 	 * 
 	 * @return array{filesArchived: int, filesChecked: int, foldersArchived: int}
 	 */
-	private function archiveUserFolder(Folder $folder, \DateTime $archiveBefore, int $timeAfter, string $userId): array {
+	private function archiveUserFolder(Folder $folder, \DateTime $archiveBefore, int $timeAfter, string $userId, array $includePaths = [], array $excludePaths = []): array {
 		$stats = [
 			'filesArchived' => 0,
 			'filesChecked' => 0,
@@ -211,6 +218,14 @@ class ArchiveJob extends TimedJob {
 		
 		// Skip the archive folder itself
 		if ($folder->getName() === Constants::ARCHIVE_FOLDER) {
+			return $stats;
+		}
+
+		// Check folder-level exclude paths (global configuration).
+		// When a folder is excluded, we never traverse into it.
+		$relativeFolderPath = $this->getRelativePathForUser($folder, $userId);
+		if ($relativeFolderPath !== '' && $this->isExcludedPath($relativeFolderPath, $excludePaths)) {
+			$this->logger->debug('Skipping folder ' . $folder->getPath() . ' due to exclude path rules');
 			return $stats;
 		}
 		
@@ -230,14 +245,14 @@ class ArchiveJob extends TimedJob {
 
 			if ($node instanceof Folder) {
 				// Recursively process subfolders
-				$subStats = $this->archiveUserFolder($node, $archiveBefore, $timeAfter, $userId);
+				$subStats = $this->archiveUserFolder($node, $archiveBefore, $timeAfter, $userId, $includePaths, $excludePaths);
 				$stats['filesArchived'] += $subStats['filesArchived'];
 				$stats['filesChecked'] += $subStats['filesChecked'];
 				$stats['foldersArchived'] += $subStats['foldersArchived'];
 			} else {
 				// Check and archive file
 				$stats['filesChecked']++;
-				$archived = $this->archiveNode($node, $archiveBefore, $timeAfter, null);
+				$archived = $this->archiveNode($node, $archiveBefore, $timeAfter, null, $includePaths, $excludePaths);
 				if ($archived) {
 					$stats['filesArchived']++;
 				}
@@ -358,7 +373,36 @@ class ArchiveJob extends TimedJob {
 	 * 
 	 * @return bool True if file was archived, false otherwise
 	 */
-	private function archiveNode(Node $node, \DateTime $archiveBefore, int $timeAfter, ?string $tagId): bool {
+	private function archiveNode(Node $node, \DateTime $archiveBefore, int $timeAfter, ?string $tagId, array $includePaths = [], array $excludePaths = []): bool {
+		// Apply global include/exclude path rules before checking time criteria.
+		try {
+			$owner = $node->getOwner();
+			if ($owner !== null) {
+				$userId = $owner->getUID();
+				$relativePath = $this->getRelativePathForUser($node, $userId);
+
+				// Never act on files inside the archive folder itself
+				if (str_starts_with($relativePath, Constants::ARCHIVE_FOLDER . '/')
+					|| $relativePath === Constants::ARCHIVE_FOLDER) {
+					return false;
+				}
+
+				if ($this->isExcludedPath($relativePath, $excludePaths)) {
+					$this->logger->debug('Skipping file ' . $node->getId() . ' at ' . $relativePath . ' due to exclude path rules');
+					return false;
+				}
+
+				if (!$this->isIncludedPath($relativePath, $includePaths)) {
+					// Include list present, but this path is not part of it.
+					$this->logger->debug('Skipping file ' . $node->getId() . ' at ' . $relativePath . ' because it is not in any include path');
+					return false;
+				}
+			}
+		} catch (Exception $e) {
+			// If anything goes wrong while resolving paths, fall back to time-based logic only.
+			$this->logger->debug('Could not evaluate include/exclude rules for node ' . $node->getId() . ': ' . $e->getMessage());
+		}
+
 		$time = $this->getDateFromNode($node, $timeAfter);
 
 		if ($time < $archiveBefore) {
@@ -748,5 +792,106 @@ class ArchiveJob extends TimedJob {
 		}
 
 		return $currentDate->sub($delta);
+	}
+
+	/**
+	 * Parse a multi-line / comma-separated path list from config into
+	 * normalized relative path prefixes.
+	 *
+	 * @param string $value
+	 * @return array<string>
+	 */
+	private function parsePathList(string $value): array {
+		if ($value === '') {
+			return [];
+		}
+
+		$parts = preg_split('/[\r\n,]+/', $value) ?: [];
+		$paths = [];
+
+		foreach ($parts as $part) {
+			$part = trim($part);
+			if ($part === '') {
+				continue;
+			}
+
+			// Normalize: strip leading/trailing slashes and collapse duplicates
+			$part = trim($part, "/ \t\n\r\0\x0B");
+			if ($part !== '' && !in_array($part, $paths, true)) {
+				$paths[] = $part;
+			}
+		}
+
+		return $paths;
+	}
+
+	/**
+	 * Resolve the relative path of a node inside the user's files folder.
+	 * Falls back to the node path (without leading slash) if resolution fails.
+	 */
+	private function getRelativePathForUser(Node $node, string $userId): string {
+		try {
+			$userFolder = $this->rootFolder->getUserFolder($userId);
+			$userFolderPath = rtrim($userFolder->getPath(), '/');
+			$nodePath = $node->getPath();
+
+			if (str_starts_with($nodePath, $userFolderPath . '/')) {
+				return substr($nodePath, \strlen($userFolderPath) + 1);
+			}
+		} catch (Exception $e) {
+			$this->logger->debug('Could not resolve relative path for node ' . $node->getId() . ': ' . $e->getMessage());
+		}
+
+		return ltrim($node->getPath(), '/');
+	}
+
+	/**
+	 * Check whether a relative path should be excluded.
+	 */
+	private function isExcludedPath(string $relativePath, array $excludePaths): bool {
+		foreach ($excludePaths as $pattern) {
+			if ($this->pathMatches($relativePath, $pattern)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Check whether a relative path is included when an include list is present.
+	 * If no include paths are configured, everything is considered included.
+	 */
+	private function isIncludedPath(string $relativePath, array $includePaths): bool {
+		if ($includePaths === []) {
+			return true;
+		}
+
+		foreach ($includePaths as $pattern) {
+			if ($this->pathMatches($relativePath, $pattern)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Simple prefix-based path match. Both parameters are relative paths
+	 * without leading slash. A match occurs when the path is equal to the
+	 * pattern or starts with "pattern/".
+	 */
+	private function pathMatches(string $relativePath, string $pattern): bool {
+		$relativePath = trim($relativePath, "/");
+		$pattern = trim($pattern, "/");
+
+		if ($pattern === '') {
+			return false;
+		}
+
+		if ($relativePath === $pattern) {
+			return true;
+		}
+
+		return str_starts_with($relativePath, $pattern . '/');
 	}
 }

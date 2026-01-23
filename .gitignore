@@ -25,3 +25,21 @@ npm-debug.log*
 # Cache
 /.php-cs-fixer.cache
 /.cache
+
+# Development-specific scripts (local troubleshooting/diagnostics)
+/restore_app.sh
+/restore_app_docker.sh
+/check_app_docker.sh
+/check_archive_folder.sh
+/check_archive_logs.sh
+/check_php_errors.sh
+/check_server.sh
+/verify_server.sh
+/find_logs.sh
+/fix_ui.sh
+/deploy.sh
+
+# Development-specific documentation (local troubleshooting)
+/WHY_APP_REMOVED.md
+/WHY_APP_DELETED.md
+/RESTORE_DELETED_APP.md

@@ -32,6 +32,61 @@
 			</p>
 		</div>
 
+		<!-- Global include / exclude path configuration -->
+		<div class="archive-path-settings">
+			<h3 class="archive-section-title">
+				{{ t('time_archive', 'Archive path filters') }}
+			</h3>
+			<p class="archive-path-settings__description">
+				{{ t('time_archive', 'Limit archiving to specific folders or exclude folders and files globally. Paths are relative to the user\\'s files root (for example "Projects", "Projects/Archived", "Shared/Reports").') }}
+			</p>
+
+			<div class="archive-path-settings__grid">
+				<div class="archive-path-settings__field">
+					<label class="archive-form__label" for="includePaths">
+						{{ t('time_archive', 'Only archive from these paths') }}
+					</label>
+					<textarea id="includePaths"
+						v-model="includePathsText"
+						:disabled="loadingSettings"
+						class="archive-path-settings__textarea"
+						:placeholder="t('time_archive', 'One path per line, leave empty to allow all folders')"></textarea>
+					<p class="archive-form__hint">
+						{{ t('time_archive', 'If set, only files whose path starts with one of these entries will be considered for archiving.') }}
+					</p>
+				</div>
+
+				<div class="archive-path-settings__field">
+					<label class="archive-form__label" for="excludePaths">
+						{{ t('time_archive', 'Never archive these paths') }}
+					</label>
+					<textarea id="excludePaths"
+						v-model="excludePathsText"
+						:disabled="loadingSettings"
+						class="archive-path-settings__textarea"
+						:placeholder="t('time_archive', 'One path per line, such as \\'.archive-temp\\' or \\\"Projects/Drafts\\\"')"></textarea>
+					<p class="archive-form__hint">
+						{{ t('time_archive', 'Files and folders under these paths are always excluded from archiving, regardless of the rule.') }}
+					</p>
+				</div>
+			</div>
+
+			<div class="archive-path-settings__actions">
+				<NcButton variant="secondary"
+					type="button"
+					:disabled="loadingSettings || savingSettings"
+					@click="onClickSavePathSettings">
+					<template #icon>
+						<Archive :size="18" />
+					</template>
+					{{ savingSettings ? t('time_archive', 'Saving…') : t('time_archive', 'Save archive path filters') }}
+				</NcButton>
+				<p v-if="settingsHint" class="archive-path-settings__hint">
+					{{ settingsHint }}
+				</p>
+			</div>
+		</div>
+
 		<!-- Existing Rules -->
 		<div v-if="archiveRules.length > 0" class="archive-rules-list">
 			<h3 class="archive-section-title">
@@ -133,7 +188,7 @@ import Archive from 'vue-material-design-icons/Archive.vue'
 import Play from 'vue-material-design-icons/Play.vue'
 
 import ArchiveRule from './Components/ArchiveRule.vue'
-import { runArchiveJob } from './services/archiveService.js'
+import { runArchiveJob, getArchiveSettings, updateArchiveSettings, getArchiveStats } from './services/archiveService.js'
 
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { loadState } from '@nextcloud/initial-state'
@@ -180,6 +235,19 @@ export default {
 			newAfter: afterOptions[1], // Default to modification date
 
 			newAmount: '365',
+
+			// Global path filter settings
+			includePathsText: loadState('time_archive', 'include-paths') || '',
+			excludePathsText: loadState('time_archive', 'exclude-paths') || '',
+			loadingSettings: false,
+			savingSettings: false,
+			settingsHint: '',
+
+			// Statistics
+			statsLoading: false,
+			statsError: '',
+			statsOverall: null,
+			statsPerUser: [],
 		}
 	},
 
@@ -198,14 +266,19 @@ export default {
 			console.log('[Files Archive] Loading archive rules...')
 			await this.$store.dispatch('loadArchiveRules')
 			console.log('[Files Archive] Archive rules loaded:', this.archiveRules)
-			this.loading = false
 		} catch (e) {
 			console.error('[Files Archive] Error loading archive rules:', e)
 			console.error('[Files Archive] Error details:', e.response || e.message)
 			const errorMsg = e.response?.data?.message || e.message || t('time_archive', 'An error occurred while loading the existing archive rules')
 			showError(errorMsg)
+		} finally {
 			this.loading = false
 		}
+
+		// Load latest archive settings from backend (in case they changed server-side)
+		this.loadPathSettings()
+		// Load statistics for administrators
+		this.loadStats()
 	},
 
 	methods: {
@@ -278,6 +351,65 @@ export default {
 				console.error('Archive job error:', e)
 			} finally {
 				this.runningArchive = false
+			}
+		},
+
+		async loadPathSettings() {
+			this.loadingSettings = true
+			this.settingsHint = ''
+			try {
+				const response = await getArchiveSettings()
+				const data = response.data?.ocs?.data || response.data || {}
+				this.includePathsText = data.includePaths ?? ''
+				this.excludePathsText = data.excludePaths ?? ''
+			} catch (e) {
+				console.error('[Files Archive] Failed to load archive path settings', e)
+				this.settingsHint = t('time_archive', 'Failed to load archive path filters from the server.')
+			} finally {
+				this.loadingSettings = false
+			}
+		},
+
+		async onClickSavePathSettings() {
+			if (this.savingSettings) {
+				return
+			}
+
+			this.savingSettings = true
+			this.settingsHint = ''
+			try {
+				const payload = {
+					includePaths: this.includePathsText,
+					excludePaths: this.excludePathsText,
+				}
+				const response = await updateArchiveSettings(payload)
+				const data = response.data?.ocs?.data || response.data || {}
+				this.includePathsText = data.includePaths ?? this.includePathsText
+				this.excludePathsText = data.excludePaths ?? this.excludePathsText
+				this.settingsHint = t('time_archive', 'Archive path filters have been saved.')
+				showSuccess(t('time_archive', 'Archive path filters have been saved.'))
+			} catch (e) {
+				console.error('[Files Archive] Failed to save archive path settings', e)
+				this.settingsHint = t('time_archive', 'Failed to save archive path filters.')
+				showError(t('time_archive', 'Failed to save archive path filters.'))
+			} finally {
+				this.savingSettings = false
+			}
+		},
+
+		async loadStats() {
+			this.statsLoading = true
+			this.statsError = ''
+			try {
+				const response = await getArchiveStats()
+				const data = response.data?.ocs?.data || response.data || {}
+				this.statsOverall = data.overall || null
+				this.statsPerUser = Array.isArray(data.perUser) ? data.perUser : []
+			} catch (e) {
+				console.error('[Files Archive] Failed to load archive statistics', e)
+				this.statsError = t('time_archive', 'Failed to load archive statistics.')
+			} finally {
+				this.statsLoading = false
 			}
 		},
 	},
@@ -438,5 +570,57 @@ export default {
 		color: var(--color-main-text);
 		line-height: 1.5;
 	}
+}
+
+.archive-path-settings {
+	margin-bottom: 32px;
+	padding: 20px;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+}
+
+.archive-path-settings__description {
+	margin: 0 0 12px 0;
+	font-size: 0.9em;
+	color: var(--color-text-maxcontrast);
+}
+
+.archive-path-settings__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 16px;
+	margin-top: 8px;
+}
+
+.archive-path-settings__field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.archive-path-settings__textarea {
+	min-height: 96px;
+	max-height: 180px;
+	resize: vertical;
+	padding: 8px;
+	border-radius: var(--border-radius);
+	border: 1px solid var(--color-border);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-family: var(--font-family-monospace);
+}
+
+.archive-path-settings__actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.archive-path-settings__hint {
+	margin: 0;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
 }
 </style>

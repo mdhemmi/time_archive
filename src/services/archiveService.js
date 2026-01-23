@@ -45,10 +45,40 @@ const getArchivedFiles = async function() {
 	return axios.get(generateOcsUrl('/apps/time_archive/api/v1/files'))
 }
 
+/**
+ * Get global archive settings (include/exclude paths)
+ * @return {object} The axios response
+ */
+const getArchiveSettings = async function() {
+	return axios.get(generateOcsUrl('/apps/time_archive/api/v1/settings'))
+}
+
+/**
+ * Update global archive settings (include/exclude paths)
+ * @param {object} settings The settings payload
+ * @param {string} settings.includePaths
+ * @param {string} settings.excludePaths
+ * @return {object} The axios response
+ */
+const updateArchiveSettings = async function(settings) {
+	return axios.post(generateOcsUrl('/apps/time_archive/api/v1/settings'), settings)
+}
+
+/**
+ * Get archive statistics (overall and per user)
+ * @return {object} The axios response
+ */
+const getArchiveStats = async function() {
+	return axios.get(generateOcsUrl('/apps/time_archive/api/v1/stats'))
+}
+
 export {
 	createArchiveRule,
 	deleteArchiveRule,
 	getArchiveRules,
 	runArchiveJob,
 	getArchivedFiles,
+	getArchiveSettings,
+	updateArchiveSettings,
+	getArchiveStats,
 }

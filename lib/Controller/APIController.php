@@ -16,6 +16,7 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 use OCP\BackgroundJob\IJobList;
 use OCP\IDBConnection;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\TagNotFoundException;
@@ -38,6 +39,7 @@ class APIController extends OCSController {
 		private readonly ISystemTagManager $tagManager,
 		private readonly IJobList $jobList,
 		private readonly LoggerInterface $logger,
+		private readonly IConfig $config,
 		private readonly ITimeFactory $timeFactory,
 		private readonly ISystemTagObjectMapper $tagMapper,
 		private readonly IUserMountCache $userMountCache,
@@ -321,6 +323,40 @@ class APIController extends OCSController {
 	}
 
 	/**
+	 * Get global archive path settings (include/exclude lists).
+	 * Admin only.
+	 *
+	 * Returns raw multi-line strings as stored in app config so the
+	 * admin UI can present and edit them directly.
+	 */
+	public function getArchiveSettings(): DataResponse {
+		$includePaths = $this->config->getAppValue('time_archive', 'include_paths', '');
+		$excludePaths = $this->config->getAppValue('time_archive', 'exclude_paths', '');
+
+		return new DataResponse([
+			'includePaths' => $includePaths,
+			'excludePaths' => $excludePaths,
+		], Http::STATUS_OK);
+	}
+
+	/**
+	 * Update global archive path settings (include/exclude lists).
+	 * Admin only.
+	 *
+	 * @param string $includePaths Newline- or comma-separated list of path prefixes to include
+	 * @param string $excludePaths Newline- or comma-separated list of path prefixes to exclude
+	 */
+	public function updateArchiveSettings(string $includePaths = '', string $excludePaths = ''): DataResponse {
+		$this->config->setAppValue('time_archive', 'include_paths', $includePaths);
+		$this->config->setAppValue('time_archive', 'exclude_paths', $excludePaths);
+
+		return new DataResponse([
+			'includePaths' => $includePaths,
+			'excludePaths' => $excludePaths,
+		], Http::STATUS_OK);
+	}
+
+	/**
 	 * Calculate archive before date (helper for logging)
 	 */
 	private function calculateArchiveBeforeDate(int $timeUnit, int $timeAmount): \DateTime {
@@ -345,6 +381,69 @@ class APIController extends OCSController {
 		}
 
 		return $currentDate->sub($delta);
+	}
+
+	/**
+	 * Get archive statistics for all users.
+	 * Admin only.
+	 *
+	 * Returns overall totals and per-user statistics based on the
+	 * contents of each user's .archive folder.
+	 */
+	public function getArchiveStats(): DataResponse {
+		$overall = [
+			'usersWithArchive' => 0,
+			'totalFiles' => 0,
+			'totalSize' => 0,
+		];
+		$perUser = [];
+
+		$this->userManager->callForAllUsers(function ($user) use (&$overall, &$perUser) {
+			$userId = $user->getUID();
+
+			try {
+				$userFolder = $this->rootFolder->getUserFolder($userId);
+
+				try {
+					$archiveFolder = $userFolder->get(Constants::ARCHIVE_FOLDER);
+					if (!$archiveFolder instanceof \OCP\Files\Folder) {
+						return;
+					}
+				} catch (\OCP\Files\NotFoundException $e) {
+					// User has no archive folder yet.
+					return;
+				}
+
+				$userStats = $this->collectArchiveStatsForFolder($archiveFolder);
+
+				if ($userStats['files'] > 0 || $userStats['size'] > 0) {
+					$overall['usersWithArchive']++;
+					$overall['totalFiles'] += $userStats['files'];
+					$overall['totalSize'] += $userStats['size'];
+
+					$perUser[] = [
+						'userId' => $userId,
+						'files' => $userStats['files'],
+						'size' => $userStats['size'],
+						'lastModified' => $userStats['lastModified'],
+					];
+				}
+			} catch (\Exception $e) {
+				$this->logger->error('Error collecting archive stats for user ' . $userId . ': ' . $e->getMessage(), [
+					'exception' => $e,
+				]);
+			}
+		});
+
+		// Sort users by total size descending for convenience
+		usort($perUser, static function (array $a, array $b): int {
+			return $b['size'] <=> $a['size'];
+		});
+
+		return new DataResponse([
+			'overall' => $overall,
+			'perUser' => $perUser,
+		], Http::STATUS_OK);
 	}
 
 	/**
@@ -418,5 +517,40 @@ class APIController extends OCSController {
 		}
 
 		return $files;
+	}
+
+	/**
+	 * Recursively collect statistics for files inside a folder.
+	 *
+	 * @return array{files:int,size:int,lastModified:int|null}
+	 */
+	private function collectArchiveStatsForFolder(\OCP\Files\Folder $folder): array {
+		$stats = [
+			'files' => 0,
+			'size' => 0,
+			'lastModified' => null,
+		];
+
+		$nodes = $folder->getDirectoryListing();
+
+		foreach ($nodes as $node) {
+			if ($node instanceof \OCP\Files\Folder) {
+				$sub = $this->collectArchiveStatsForFolder($node);
+				$stats['files'] += $sub['files'];
+				$stats['size'] += $sub['size'];
+				if ($sub['lastModified'] !== null && ($stats['lastModified'] === null || $sub['lastModified'] > $stats['lastModified'])) {
+					$stats['lastModified'] = $sub['lastModified'];
+				}
+			} else {
+				$stats['files']++;
+				$stats['size'] += $node->getSize();
+				$mtime = $node->getMTime();
+				if ($stats['lastModified'] === null || $mtime > $stats['lastModified']) {
+					$stats['lastModified'] = $mtime;
+				}
+			}
+		}
+
+		return $stats;
 	}
 }
