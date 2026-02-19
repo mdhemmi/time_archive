@@ -332,10 +332,12 @@ class APIController extends OCSController {
 	public function getArchiveSettings(): DataResponse {
 		$includePaths = $this->config->getAppValue('time_archive', 'include_paths', '');
 		$excludePaths = $this->config->getAppValue('time_archive', 'exclude_paths', '');
+		$excludedUsers = $this->config->getAppValue('time_archive', 'excluded_users', '');
 
 		return new DataResponse([
 			'includePaths' => $includePaths,
 			'excludePaths' => $excludePaths,
+			'excludedUsers' => $excludedUsers,
 		], Http::STATUS_OK);
 	}
 
@@ -345,14 +347,17 @@ class APIController extends OCSController {
 	 *
 	 * @param string $includePaths Newline- or comma-separated list of path prefixes to include
 	 * @param string $excludePaths Newline- or comma-separated list of path prefixes to exclude
+	 * @param string $excludedUsers Newline- or comma-separated list of user IDs to exclude from archiving
 	 */
-	public function updateArchiveSettings(string $includePaths = '', string $excludePaths = ''): DataResponse {
+	public function updateArchiveSettings(string $includePaths = '', string $excludePaths = '', string $excludedUsers = ''): DataResponse {
 		$this->config->setAppValue('time_archive', 'include_paths', $includePaths);
 		$this->config->setAppValue('time_archive', 'exclude_paths', $excludePaths);
+		$this->config->setAppValue('time_archive', 'excluded_users', $excludedUsers);
 
 		return new DataResponse([
 			'includePaths' => $includePaths,
 			'excludePaths' => $excludePaths,
+			'excludedUsers' => $excludedUsers,
 		], Http::STATUS_OK);
 	}
 

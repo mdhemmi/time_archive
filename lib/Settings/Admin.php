@@ -43,6 +43,10 @@ class Admin implements ISettings {
 			'exclude-paths',
 			$this->config->getAppValue(Application::APP_ID, 'exclude_paths', '')
 		);
+		$this->initialState->provideInitialState(
+			'excluded-users',
+			$this->config->getAppValue(Application::APP_ID, 'excluded_users', '')
+		);
 
 		return new TemplateResponse('time_archive', 'admin', [], '');
 	}

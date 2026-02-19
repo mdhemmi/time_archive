@@ -69,6 +69,20 @@
 						{{ t('time_archive', 'Files and folders under these paths are always excluded from archiving, regardless of the rule.') }}
 					</p>
 				</div>
+
+				<div class="archive-path-settings__field archive-path-settings__field--full">
+					<label class="archive-form__label" for="excludedUsers">
+						{{ t('time_archive', 'Excluded users') }}
+					</label>
+					<textarea id="excludedUsers"
+						v-model="excludedUsersText"
+						:disabled="loadingSettings"
+						class="archive-path-settings__textarea"
+						:placeholder="excludedUsersPlaceholder"></textarea>
+					<p class="archive-form__hint">
+						{{ t('time_archive', 'Users listed here are never processed by the archive job. One user ID per line.') }}
+					</p>
+				</div>
 			</div>
 
 			<div class="archive-path-settings__actions">
@@ -79,7 +93,7 @@
 					<template #icon>
 						<Archive :size="18" />
 					</template>
-					{{ savingSettings ? t('time_archive', 'Saving…') : t('time_archive', 'Save archive path filters') }}
+					{{ savingSettings ? t('time_archive', 'Saving…') : t('time_archive', 'Save archive settings') }}
 				</NcButton>
 				<p v-if="settingsHint" class="archive-path-settings__hint">
 					{{ settingsHint }}
@@ -239,6 +253,7 @@ export default {
 			// Global path filter settings
 			includePathsText: loadState('time_archive', 'include-paths') || '',
 			excludePathsText: loadState('time_archive', 'exclude-paths') || '',
+			excludedUsersText: loadState('time_archive', 'excluded-users') || '',
 			loadingSettings: false,
 			savingSettings: false,
 			settingsHint: '',
@@ -262,6 +277,10 @@ export default {
 
 		excludePathsPlaceholder() {
 			return t('time_archive', 'One path per line (e.g. .archive-temp or Projects/Drafts)')
+		},
+
+		excludedUsersPlaceholder() {
+			return t('time_archive', 'One user ID per line')
 		},
 	},
 
@@ -366,6 +385,7 @@ export default {
 				const data = response.data?.ocs?.data || response.data || {}
 				this.includePathsText = data.includePaths ?? ''
 				this.excludePathsText = data.excludePaths ?? ''
+				this.excludedUsersText = data.excludedUsers ?? ''
 			} catch (e) {
 				console.error('[Files Archive] Failed to load archive path settings', e)
 				this.settingsHint = t('time_archive', 'Failed to load archive path filters from the server.')
@@ -385,13 +405,15 @@ export default {
 				const payload = {
 					includePaths: this.includePathsText,
 					excludePaths: this.excludePathsText,
+					excludedUsers: this.excludedUsersText,
 				}
 				const response = await updateArchiveSettings(payload)
 				const data = response.data?.ocs?.data || response.data || {}
 				this.includePathsText = data.includePaths ?? this.includePathsText
 				this.excludePathsText = data.excludePaths ?? this.excludePathsText
-				this.settingsHint = t('time_archive', 'Archive path filters have been saved.')
-				showSuccess(t('time_archive', 'Archive path filters have been saved.'))
+				this.excludedUsersText = data.excludedUsers ?? this.excludedUsersText
+				this.settingsHint = t('time_archive', 'Archive settings have been saved.')
+				showSuccess(t('time_archive', 'Archive settings have been saved.'))
 			} catch (e) {
 				console.error('[Files Archive] Failed to save archive path settings', e)
 				this.settingsHint = t('time_archive', 'Failed to save archive path filters.')
@@ -601,6 +623,10 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+
+	&--full {
+		grid-column: 1 / -1;
+	}
 }
 
 .archive-path-settings__textarea {

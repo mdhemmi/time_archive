@@ -109,16 +109,20 @@ class ArchiveJob extends TimedJob {
 		$includePaths = $this->parsePathList($includePathsRaw);
 		$excludePaths = $this->parsePathList($excludePathsRaw);
 
+		// Load excluded user IDs (admin-configured users that are never archived).
+		$excludedUsersRaw = (string)$this->config->getAppValue('time_archive', 'excluded_users', '');
+		$excludedUserIds = $this->parseUserList($excludedUsersRaw);
+
 		if ($tagId !== null) {
 			// Tag-based archiving
 			$this->logger->info("Running archive for Tag $tagId with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
 			error_log("Time Archive: Running archive for Tag $tagId with archive before " . $archiveBefore->format('Y-m-d H:i:s'));
-			$this->archiveByTag($tagId, $archiveBefore, $timeAfter, $includePaths, $excludePaths);
+			$this->archiveByTag($tagId, $archiveBefore, $timeAfter, $includePaths, $excludePaths, $excludedUserIds);
 		} else {
 			// Time-based archiving - archive all files for all users
 			$this->logger->info("Running time-based archive (Rule $ruleId) with archive before " . $archiveBefore->format(\DateTimeInterface::ATOM));
 			error_log("Time Archive: Running time-based archive (Rule $ruleId) with archive before " . $archiveBefore->format('Y-m-d H:i:s'));
-			$stats = $this->archiveByTime($archiveBefore, $timeAfter, $includePaths, $excludePaths);
+			$stats = $this->archiveByTime($archiveBefore, $timeAfter, $includePaths, $excludePaths, $excludedUserIds);
 			$this->logger->info("Archive job completed: " . json_encode($stats));
 			error_log("Time Archive: Archive job completed - " . json_encode($stats));
 		}
@@ -127,7 +131,7 @@ class ArchiveJob extends TimedJob {
 	/**
 	 * Archive files based on tag
 	 */
-	private function archiveByTag(int $tagId, \DateTime $archiveBefore, int $timeAfter, array $includePaths = [], array $excludePaths = []): void {
+	private function archiveByTag(int $tagId, \DateTime $archiveBefore, int $timeAfter, array $includePaths = [], array $excludePaths = [], array $excludedUserIds = []): void {
 		$offset = '';
 		$limit = 1000;
 		while ($offset !== null) {
@@ -145,7 +149,7 @@ class ArchiveJob extends TimedJob {
 					continue;
 				}
 
-				$this->archiveNode($node, $archiveBefore, $timeAfter, (string)$tagId, $includePaths, $excludePaths);
+				$this->archiveNode($node, $archiveBefore, $timeAfter, (string)$tagId, $includePaths, $excludePaths, $excludedUserIds);
 			}
 
 			if (empty($fileIds) || count($fileIds) < $limit) {
@@ -161,7 +165,7 @@ class ArchiveJob extends TimedJob {
 	 * 
 	 * @return array{usersProcessed: int, filesArchived: int, filesChecked: int, foldersArchived: int}
 	 */
-	private function archiveByTime(\DateTime $archiveBefore, int $timeAfter, array $includePaths = [], array $excludePaths = []): array {
+	private function archiveByTime(\DateTime $archiveBefore, int $timeAfter, array $includePaths = [], array $excludePaths = [], array $excludedUserIds = []): array {
 		$stats = [
 			'usersProcessed' => 0,
 			'filesArchived' => 0,
@@ -171,8 +175,12 @@ class ArchiveJob extends TimedJob {
 		
 		error_log("Time Archive: Starting to process all users. Archive threshold: " . $archiveBefore->format('Y-m-d H:i:s'));
 		
-		$this->userManager->callForAllUsers(function ($user) use ($archiveBefore, $timeAfter, $includePaths, $excludePaths, &$stats) {
+		$this->userManager->callForAllUsers(function ($user) use ($archiveBefore, $timeAfter, $includePaths, $excludePaths, $excludedUserIds, &$stats) {
 			$userId = $user->getUID();
+			if ($excludedUserIds !== [] && in_array($userId, $excludedUserIds, true)) {
+				$this->logger->debug("Skipping excluded user: $userId");
+				return;
+			}
 			try {
 				error_log("Time Archive: Processing user: $userId");
 				$userFolder = $this->rootFolder->getUserFolder($userId);
@@ -373,7 +381,18 @@ class ArchiveJob extends TimedJob {
 	 * 
 	 * @return bool True if file was archived, false otherwise
 	 */
-	private function archiveNode(Node $node, \DateTime $archiveBefore, int $timeAfter, ?string $tagId, array $includePaths = [], array $excludePaths = []): bool {
+	private function archiveNode(Node $node, \DateTime $archiveBefore, int $timeAfter, ?string $tagId, array $includePaths = [], array $excludePaths = [], array $excludedUserIds = []): bool {
+		// Skip nodes owned by excluded users (admin-configured).
+		try {
+			$owner = $node->getOwner();
+			if ($owner !== null && $excludedUserIds !== [] && in_array($owner->getUID(), $excludedUserIds, true)) {
+				$this->logger->debug('Skipping file ' . $node->getId() . ': owner is in excluded users list');
+				return false;
+			}
+		} catch (Exception $e) {
+			$this->logger->debug('Could not get owner for node ' . $node->getId() . ': ' . $e->getMessage());
+		}
+
 		// Apply global include/exclude path rules before checking time criteria.
 		try {
 			$owner = $node->getOwner();
@@ -823,6 +842,26 @@ class ArchiveJob extends TimedJob {
 		}
 
 		return $paths;
+	}
+
+	/**
+	 * Parse a newline- or comma-separated list of user IDs from config.
+	 *
+	 * @return array<string>
+	 */
+	private function parseUserList(string $value): array {
+		if ($value === '') {
+			return [];
+		}
+		$parts = preg_split('/[\r\n,]+/', $value) ?: [];
+		$users = [];
+		foreach ($parts as $part) {
+			$part = trim($part);
+			if ($part !== '' && !in_array($part, $users, true)) {
+				$users[] = $part;
+			}
+		}
+		return $users;
 	}
 
 	/**
