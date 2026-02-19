@@ -38,7 +38,7 @@
 				{{ t('time_archive', 'Archive path filters') }}
 			</h3>
 			<p class="archive-path-settings__description">
-				{{ t('time_archive', 'Limit archiving to specific folders or exclude folders and files globally. Paths are relative to the user\\'s files root (for example "Projects", "Projects/Archived", "Shared/Reports").') }}
+				{{ t('time_archive', 'Limit archiving to specific folders or exclude folders and files globally. Paths are relative to the user files root (e.g. Projects, Projects/Archived, Shared/Reports).') }}
 			</p>
 
 			<div class="archive-path-settings__grid">
@@ -64,7 +64,7 @@
 						v-model="excludePathsText"
 						:disabled="loadingSettings"
 						class="archive-path-settings__textarea"
-						:placeholder="t('time_archive', 'One path per line, such as \\'.archive-temp\\' or \\\"Projects/Drafts\\\"')"></textarea>
+						:placeholder="excludePathsPlaceholder"></textarea>
 					<p class="archive-form__hint">
 						{{ t('time_archive', 'Files and folders under these paths are always excluded from archiving, regardless of the rule.') }}
 					</p>
@@ -258,6 +258,10 @@ export default {
 
 		createLabel() {
 			return t('time_archive', 'Create new archive rule')
+		},
+
+		excludePathsPlaceholder() {
+			return t('time_archive', 'One path per line (e.g. .archive-temp or Projects/Drafts)')
 		},
 	},
 
