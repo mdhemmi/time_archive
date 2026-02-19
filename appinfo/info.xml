@@ -9,7 +9,7 @@
 	<name>Time Archive</name>
 	<summary>Automatically archive files based on age. Archived files are moved to .archive folder (hidden from mobile apps).</summary>
 	<description>An app for Nextcloud to automatically archive files based on file age. Configure rules to archive files older than a specified time period (e.g., 1 year). Archived files are moved to the .archive folder for each user, which is hidden from mobile apps to prevent re-uploading but remains accessible via the web interface. Perfect for organizing old files while keeping them accessible.</description>
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 	<licence>agpl</licence>
 	<author>Michael Hempel</author>
 	<namespace>Time_Archive</namespace>
