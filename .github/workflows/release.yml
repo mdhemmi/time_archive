@@ -57,11 +57,11 @@ jobs:
           sed -i "s|<version>.*</version>|<version>$VERSION</version>|g" appinfo/info.xml
           echo "Updated appinfo/info.xml to version $VERSION"
 
-      - name: Install Composer dependencies
+      - name: Generate Composer autoloader
         run: |
-          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
-        continue-on-error: false
-        timeout-minutes: 10
+          # This app has no production PHP dependencies; only PSR-4 autoload is needed.
+          composer dump-autoload --optimize --classmap-authoritative --no-interaction --no-scripts
+        timeout-minutes: 5
 
       - name: Install npm dependencies
         run: |
